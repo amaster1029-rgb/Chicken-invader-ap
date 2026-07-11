@@ -182,6 +182,28 @@ public class GameMain extends JFrame {
                             }
                         }
 
+                        if(keyCode == KeyEvent.VK_ESCAPE){
+                            gameTimer.stop();
+                            bullets.clear();
+                            chickens.clear();
+
+                            airplaneX = 325;
+                            airplaneY = 380;
+
+                            mainPanel.removeAll();
+                            mainPanel.setBackground(new Color(0x1A1A2E));
+
+                            mainPanel.add(titleLabel);
+                            mainPanel.add(newGameButton);
+                            mainPanel.add(highScoreButton);
+                            mainPanel.add(settingButton);
+                            mainPanel.add(howToPlayButton);
+                            mainPanel.add(exitButton);
+
+                            mainPanel.revalidate();
+                            mainPanel.repaint();
+                        }
+
                         airplaneLabel.setBounds(airplaneX, airplaneY, 60, 60);
                     }
                 });
