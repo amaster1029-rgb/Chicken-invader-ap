@@ -1,6 +1,7 @@
 package ChickenInvaders.ui;
 
 import ChickenInvaders.main.GameMain;
+import ChickenInvaders.main.SoundManager;
 import ChickenInvaders.model.Plane;
 import ChickenInvaders.model.Bullet;
 
@@ -79,6 +80,7 @@ public class GamePanel extends JPanel{
                     playerPlane.moveUp();
                 //shooting
                 if(keyCode == KeyEvent.VK_SPACE){
+                    SoundManager.playShotSound("sound-effects/mixkit-short-laser-gun-shot-1670.wav");
                     long currentTime = System.currentTimeMillis();
 
                     //checking for 300ms delay

@@ -1,12 +1,15 @@
 package ChickenInvaders.ui;
 
 import ChickenInvaders.main.GameMain;
+import ChickenInvaders.main.SoundManager;
+
 import javax.swing.*;
 import java.awt.*;
 
 public class MainMenu extends JPanel{
 
     public MainMenu(GameMain gameMain){
+        SoundManager.playBGM("sound-effects/Chicken Invaders 2 Remastered OST - Main Theme.wav");
         setLayout(null);
         setBackground(new Color(0x1A1A2E));
 
