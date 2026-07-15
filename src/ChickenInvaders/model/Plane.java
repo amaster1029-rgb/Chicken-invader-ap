@@ -66,7 +66,15 @@ public class Plane {
             lives--;
     }
 
+    public boolean isDead(){
+        return lives <= 0;
+    }
+
     public Rectangle getBounds(){
         return planeLabel.getBounds();
+    }
+
+    public void removeFromPanel(JPanel panel){
+        panel.remove(planeLabel);
     }
 }

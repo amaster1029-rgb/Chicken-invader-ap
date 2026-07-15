@@ -116,7 +116,20 @@ public class GamePanel extends JPanel{
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
+        //draw background
         if(backgroundImg != null)
             g.drawImage(backgroundImg, 0, 0, getWidth(), getHeight(), this);
+
+        //draw lives
+        if(playerPlane != null){
+            g.setColor(new Color(0x11FF00));
+            g.setFont(new Font("Arial", Font.BOLD, 20));
+            g.drawString("LIVES: ", 20, 30);
+
+            Image lifeIcon = new ImageIcon("airplan/1.png").getImage();
+            for(int i = 0; i < playerPlane.getLives(); i++){
+                g.drawImage(lifeIcon, 95 + (i * 40), 10, 25, 25, this);
+            }
+        }
     }
 }
