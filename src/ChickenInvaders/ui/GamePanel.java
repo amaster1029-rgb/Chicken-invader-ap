@@ -1,9 +1,12 @@
 package ChickenInvaders.ui;
 
+import ChickenInvaders.enemy.Enemy;
+import ChickenInvaders.enemy.NormalEnemy;
 import ChickenInvaders.main.GameMain;
 import ChickenInvaders.main.SoundManager;
 import ChickenInvaders.model.Plane;
 import ChickenInvaders.model.Bullet;
+import ChickenInvaders.enemy.Cell;
 
 import javax.swing.*;
 import java.awt.*;
@@ -16,10 +19,17 @@ public class GamePanel extends JPanel{
     private Image backgroundImg;
     private Timer gameTimer;
     private Plane playerPlane;
-
     private List<Bullet> bullets = new ArrayList<>();
     private ImageIcon shotIcon;
     private long lastShotTime = 0;
+
+    private List<Cell> gridCells = new ArrayList<>();
+    private double gridX = 100;
+    private double gridY = 30;
+    private int gridDirection = 1; //1 move to right and -1 move to left
+    private double gridSpeedX = 1.0;
+    private int gridStepY = 20;
+    private ImageIcon normalChickenIcon;
 
     public GamePanel(GameMain gameMain){
         setLayout(null);
@@ -39,14 +49,53 @@ public class GamePanel extends JPanel{
         Image scaledShot = originalShot.getImage().getScaledInstance(5, 20, Image.SCALE_SMOOTH);
         shotIcon = new ImageIcon(scaledShot);
 
+        ImageIcon originalChicken = new ImageIcon("chicken/normal_chicken.png");
+        normalChickenIcon = new ImageIcon(originalChicken.getImage().getScaledInstance(45, 45, Image.SCALE_SMOOTH));
+
+        setupGrid(1);
+
         gameTimer = new Timer(16, e -> {
+
+            moveGrid();
             //moving bullets
             for(int i = 0; i < bullets.size(); i++){
                 Bullet bullet = bullets.get(i);
                 bullet.move();
 
+                boolean bulletDestroyed = false;
+
                 //deleting bullets
                 if(bullet.getY() < 0){
+                    bullet.removeFromPanel(this);
+                    bullets.remove(i);
+                    i--;
+                    continue;
+                }
+
+                Rectangle bulletBounds = bullet.getBounds();
+                
+                for(Cell cell : gridCells){
+                    Enemy enemy = cell.getCurrentEnemy();
+
+                    if(enemy != null){
+                        if(bulletBounds.intersects(enemy.getBounds())){
+                            bulletDestroyed = true;
+                            enemy.takeDamage();
+
+                            if(enemy.isDead()){
+                                enemy.removeFromPanel(this);
+                                cell.enemyKilled();
+
+                                SoundManager.playExplosionSound("sound-effects/mixkit-epic-impact-afar-explosion-2782.wav");
+
+                                //fil here with score increasing
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                if(bulletDestroyed){
                     bullet.removeFromPanel(this);
                     bullets.remove(i);
                     i--;
@@ -108,6 +157,52 @@ public class GamePanel extends JPanel{
                 }
             }
         });
+    }
+
+    private void setupGrid(int level){
+        int rows = 5;
+        int cols = 8;
+        int gapX = 70;
+        int gapY = 55;
+        int initialCounter = 2;
+
+        for(int r = 0; r < rows; r++){
+            for (int c = 0; c < cols; c++){
+                int offsetX = c * gapX;
+                int offsetY = r * gapY;
+
+                Cell cell = new Cell(offsetX, offsetY, initialCounter);
+
+                NormalEnemy chicken = new NormalEnemy((int)gridX + offsetX, (int)gridY + offsetY,
+                        level, normalChickenIcon, this);
+
+                cell.setCurrentEnemy(chicken);
+                gridCells.add(cell);
+            }
+        }
+    }
+
+    private void moveGrid(){
+        gridX += gridSpeedX * gridDirection;
+
+        double gridWidth = (7 * 70) + 45;
+
+        if(gridWidth + gridX >= getWidth()){
+            gridX = getWidth() - gridWidth;
+            gridDirection = -1;
+            gridY += gridStepY;
+        }
+        else if(gridX <= 0){
+            gridX = 0;
+            gridDirection = 1;
+            gridY += gridStepY;
+        }
+
+        for(Cell cell : gridCells){
+            Enemy enemy = cell.getCurrentEnemy();
+            if(enemy != null)
+                enemy.setLocation((int)gridX + cell.getOffsetX(), (int)gridY + cell.getOffsetY());
+        }
     }
 
     //background

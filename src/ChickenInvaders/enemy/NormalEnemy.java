@@ -3,12 +3,12 @@ package ChickenInvaders.enemy;
 import javax.swing.*;
 
 public class NormalEnemy extends Enemy{
-    public NormalEnemy(int x, int y, ImageIcon icon, JPanel mainPanel){
-        super(x, y, 45, 45, 1, icon, mainPanel);
+    public NormalEnemy(int x, int y, int level, ImageIcon icon, JPanel mainPanel){
+        super(x, y, (level <= 3) ? 2 : 3, icon, mainPanel);
     }
 
     @Override
-    public void move() {
+    public void attackBehavior() {
         
     }
 }
