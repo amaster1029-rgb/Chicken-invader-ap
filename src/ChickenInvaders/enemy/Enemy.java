@@ -11,7 +11,7 @@ public abstract class Enemy {
     protected int health;
     protected JLabel enemyLabel;
     protected boolean isArriving = false;
-    protected int speed = 3;
+    protected int speed = 2;
 
     public Enemy(int x, int y, int health, ImageIcon icon, JPanel mainPanel){
         this.x = x;

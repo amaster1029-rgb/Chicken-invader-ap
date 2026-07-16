@@ -6,6 +6,7 @@ import ChickenInvaders.enemy.ZigzagEnemy;
 import ChickenInvaders.main.GameMain;
 import ChickenInvaders.main.SoundManager;
 import ChickenInvaders.model.Egg;
+import ChickenInvaders.model.Explosion;
 import ChickenInvaders.model.Plane;
 import ChickenInvaders.model.Bullet;
 import ChickenInvaders.enemy.Cell;
@@ -29,7 +30,7 @@ public class GamePanel extends JPanel{
     private double gridX = 100;
     private double gridY = 30;
     private int gridDirection = 1; //1 move to right and -1 move to left
-    private double gridSpeedX = 1.0;
+    private double gridSpeedX = 0.5;
     private int gridStepY = 20;
     private ImageIcon normalChickenIcon;
 
@@ -37,6 +38,10 @@ public class GamePanel extends JPanel{
     private ImageIcon eggIcon;
     private int eggSpawnTimer = 0;
     private final int eggSpawnRate = 180;
+
+    private int score = 0;
+
+    private List<Explosion> explosions = new ArrayList<>();
 
     public GamePanel(GameMain gameMain){
         setLayout(null);
@@ -99,7 +104,9 @@ public class GamePanel extends JPanel{
 
                                 SoundManager.playExplosionSound("sound-effects/mixkit-epic-impact-afar-explosion-2782.wav");
 
-                                //fil here with score increasing
+                                explosions.add(new Explosion(enemy.getX() + 22, enemy.getY() + 22, Color.orange));
+
+                                score += 10;
                             }
                             break;
                         }
@@ -149,6 +156,7 @@ public class GamePanel extends JPanel{
                 if (playerPlane != null && egg.getBounds().intersects(playerPlane.getBounds())){
                     playerPlane.decreaseLive();
                     SoundManager.playExplosionSound("sound-effects/mixkit-epic-impact-afar-explosion-2782.wav");
+                    explosions.add(new Explosion(playerPlane.getX() + 30, playerPlane.getY() + 30, Color.orange));
 
                     egg.removeFromPanel(GamePanel.this);
                     eggs.remove(i);
@@ -169,6 +177,16 @@ public class GamePanel extends JPanel{
                         gameMain.showPanel("MainMenu");
                         return;
                     }
+                }
+            }
+
+            //explosion
+            for(int i = 0; i < explosions.size(); i++){
+                Explosion exp = explosions.get(i);
+                exp.update();
+                if(exp.isVanished()){
+                    explosions.remove(i);
+                    i--;
                 }
             }
 
@@ -253,17 +271,36 @@ public class GamePanel extends JPanel{
     }
 
     private void moveGrid(){
+        int minOffsetX = Integer.MAX_VALUE;
+        int maxOffsetX = Integer.MIN_VALUE;
+        boolean hasActiveCell = false;
+
+        for(Cell cell : gridCells){
+            if(!cell.isCleared()){
+                if(cell.getOffsetX() < minOffsetX)
+                    minOffsetX = cell.getOffsetX();
+                if(cell.getOffsetX() > maxOffsetX)
+                    maxOffsetX = cell.getOffsetX();
+                hasActiveCell = true;
+            }
+        }
+
+        if(!hasActiveCell){
+            //fill here to go to next level
+            System.out.println("Level cleared");
+            return;
+        }
+
         gridX += gridSpeedX * gridDirection;
 
-        double gridWidth = (7 * 70) + 45;
-
-        if(gridWidth + gridX >= getWidth()){
-            gridX = getWidth() - gridWidth;
+        int enemyWidth = 45;
+        //right collision
+        if(gridX + maxOffsetX + enemyWidth >= getWidth()){
+            gridX = getWidth() - (maxOffsetX + enemyWidth);
             gridDirection = -1;
             gridY += gridStepY;
-        }
-        else if(gridX <= 0){
-            gridX = 0;
+        } else if (gridX + minOffsetX <= 0) {
+            gridX = -minOffsetX;
             gridDirection = 1;
             gridY += gridStepY;
         }
@@ -311,6 +348,14 @@ public class GamePanel extends JPanel{
             Image lifeIcon = new ImageIcon("airplan/1.png").getImage();
             for(int i = 0; i < playerPlane.getLives(); i++){
                 g.drawImage(lifeIcon, 95 + (i * 40), 10, 25, 25, this);
+            }
+
+            //draw score
+            g.setColor(Color.white);
+            g.drawString("Score: " + score, getWidth() - 150, 30);
+
+            for (Explosion exp : explosions){
+                exp.draw(g);
             }
         }
     }
