@@ -5,10 +5,7 @@ import ChickenInvaders.enemy.NormalEnemy;
 import ChickenInvaders.enemy.ZigzagEnemy;
 import ChickenInvaders.main.GameMain;
 import ChickenInvaders.main.SoundManager;
-import ChickenInvaders.model.Egg;
-import ChickenInvaders.model.Explosion;
-import ChickenInvaders.model.Plane;
-import ChickenInvaders.model.Bullet;
+import ChickenInvaders.model.*;
 import ChickenInvaders.enemy.Cell;
 
 import javax.swing.*;
@@ -26,6 +23,7 @@ public class GamePanel extends JPanel{
     private ImageIcon shotIcon;
     private long lastShotTime = 0;
 
+    //cell
     private List<Cell> gridCells = new ArrayList<>();
     private double gridX = 100;
     private double gridY = 30;
@@ -34,14 +32,25 @@ public class GamePanel extends JPanel{
     private int gridStepY = 20;
     private ImageIcon normalChickenIcon;
 
+    //egg
     private List<Egg> eggs = new ArrayList<>();
     private ImageIcon eggIcon;
     private int eggSpawnTimer = 0;
     private final int eggSpawnRate = 180;
 
+    //score
     private int score = 0;
 
+    //explosion
     private List<Explosion> explosions = new ArrayList<>();
+
+    //power up
+    private int currentLevel = 1;
+    private List<PowerUp> powerUps = new ArrayList<>();
+    private int rapidFireTimer = 0;
+    private int shieldTimer = 0;
+    private int freezeTimer = 0;
+    private ImageIcon addFireIcon, rapidFireIcon, extraLifeIcon, shieldIcon, freezeIcon;
 
     public GamePanel(GameMain gameMain){
         setLayout(null);
@@ -70,7 +79,37 @@ public class GamePanel extends JPanel{
         ImageIcon originalEgg = new ImageIcon("chicken/egg.png");
         eggIcon = new ImageIcon(originalEgg.getImage().getScaledInstance(15, 20, Image.SCALE_SMOOTH));
 
+        //load power up imag
+        ImageIcon originalAddFire = new ImageIcon("powerup1/add_shot.png");
+        addFireIcon = new ImageIcon(originalAddFire.getImage().getScaledInstance(30, 30, Image.SCALE_SMOOTH));
+
+        ImageIcon originalRapidFire = new ImageIcon("powerup1/fast_shot.png");
+        rapidFireIcon = new ImageIcon(originalRapidFire.getImage().getScaledInstance(30, 30, Image.SCALE_SMOOTH));
+
+        ImageIcon originalExtraLife = new ImageIcon("powerup1/heal.png");
+        extraLifeIcon = new ImageIcon(originalExtraLife.getImage().getScaledInstance(30, 30, Image.SCALE_SMOOTH));
+
+        ImageIcon originalShield = new ImageIcon("powerup1/sheild.png");
+        shieldIcon = new ImageIcon(originalShield.getImage().getScaledInstance(30, 30, Image.SCALE_SMOOTH));
+
+        ImageIcon originalFreeze = new ImageIcon("powerup1/freeze.png");
+        freezeIcon = new ImageIcon(originalFreeze.getImage().getScaledInstance(30, 30, Image.SCALE_SMOOTH));
+
         gameTimer = new Timer(16, e -> {
+
+            if(freezeTimer > 0)
+                freezeTimer--;
+            else
+                moveGrid();
+
+            if(shieldTimer > 0){
+                shieldTimer--;
+                if(shieldTimer <= 0)
+                    playerPlane.setShielded(false);
+            }
+
+            if(rapidFireTimer > 0)
+                rapidFireTimer--;
 
             moveGrid();
             //moving bullets
@@ -107,6 +146,23 @@ public class GamePanel extends JPanel{
                                 explosions.add(new Explosion(enemy.getX() + 22, enemy.getY() + 22, Color.orange));
 
                                 score += 10;
+
+                                if(Math.random() < 0.20){
+                                    PowerUp.Type[] types = PowerUp.Type.values();
+                                    PowerUp.Type randomType = types[(int)(Math.random() * types.length)];
+
+                                    ImageIcon selectedIcon = addFireIcon;
+                                    if(randomType == PowerUp.Type.rapidFire)
+                                        selectedIcon = rapidFireIcon;
+                                    if(randomType == PowerUp.Type.extraLife)
+                                        selectedIcon = extraLifeIcon;
+                                    if(randomType == PowerUp.Type.shield)
+                                        selectedIcon = shieldIcon;
+                                    if(randomType == PowerUp.Type.freeze)
+                                        selectedIcon = freezeIcon;
+
+                                    powerUps.add(new PowerUp(enemy.getX(), enemy.getY(), selectedIcon, randomType, GamePanel.this));
+                                }
                             }
                             break;
                         }
@@ -154,7 +210,7 @@ public class GamePanel extends JPanel{
                 }
 
                 if (playerPlane != null && egg.getBounds().intersects(playerPlane.getBounds())){
-                    playerPlane.decreaseLive();
+                    playerPlane.takeDamage();
                     SoundManager.playExplosionSound("sound-effects/mixkit-epic-impact-afar-explosion-2782.wav");
                     explosions.add(new Explosion(playerPlane.getX() + 30, playerPlane.getY() + 30, Color.orange));
 
@@ -190,6 +246,36 @@ public class GamePanel extends JPanel{
                 }
             }
 
+            //power ups
+            for(int i = 0; i < powerUps.size(); i++){
+                PowerUp p = powerUps.get(i);
+                p.move();
+
+                if(p.getY() > getHeight()){
+                    p.removeFromPanel(GamePanel.this);
+                    powerUps.remove(i);
+                    i--;
+                    continue;
+                }
+
+                if(playerPlane != null && p.getBounds().intersects(playerPlane.getBounds())){
+                    switch (p.getType()){
+                        case addFire -> playerPlane.upgradeWeapon();
+                        case extraLife -> playerPlane.addLife();
+                        case rapidFire -> rapidFireTimer = 480; //8s
+                        case freeze -> freezeTimer = 180; //3s
+                        case shield -> {
+                            shieldTimer = 600;
+                            playerPlane.setShielded(true); //10s
+                        }
+                    }
+
+                    p.removeFromPanel(GamePanel.this);
+                    powerUps.remove(i);
+                    i--;
+                }
+            }
+
             repaint();
         });
 
@@ -220,14 +306,29 @@ public class GamePanel extends JPanel{
                     SoundManager.playShotSound("sound-effects/mixkit-short-laser-gun-shot-1670.wav");
                     long currentTime = System.currentTimeMillis();
 
+                    int currentCooldown = (rapidFireTimer > 0) ? 100 : 300;
+
                     //checking for 300ms delay
-                    if(currentTime - lastShotTime >= 300){
+                    if(currentTime - lastShotTime >= currentCooldown){
+                        SoundManager.playShotSound("sound-effects/mixkit-short-laser-gun-shot-1670.wav");
                         lastShotTime = currentTime;
 
-                        //add new bullet
-                        Bullet newBullet = new Bullet(playerPlane.getX(), playerPlane.getY(), shotIcon,
-                                GamePanel.this);
-                        bullets.add(newBullet);
+                        int wLevel = playerPlane.getWeaponLevel();
+                        int px = playerPlane.getX();
+                        int py = playerPlane.getY();
+
+                        if(wLevel == 1) {
+                            bullets.add(new Bullet(px, py, shotIcon, GamePanel.this));
+                        }
+                        else if (wLevel == 2) {
+                            bullets.add(new Bullet(px + 12, py + 10, shotIcon, GamePanel.this));
+                            bullets.add(new Bullet(px - 12, py + 10, shotIcon, GamePanel.this));
+                        }
+                        else if(wLevel >= 3) {
+                            bullets.add(new Bullet(px - 15, py + 15, shotIcon, GamePanel.this));
+                            bullets.add(new Bullet(px, py - 5, shotIcon, GamePanel.this));
+                            bullets.add(new Bullet(px + 15, py + 15, shotIcon, GamePanel.this));
+                        }
                     }
                 }
 
@@ -250,8 +351,8 @@ public class GamePanel extends JPanel{
     private void setupGrid(int level){
         int rows = 5;
         int cols = 8;
-        int gapX = 70;
-        int gapY = 55;
+        int gapX = 60;
+        int gapY = 45;
         int initialCounter = 2;
 
         for(int r = 0; r < rows; r++){
@@ -286,8 +387,16 @@ public class GamePanel extends JPanel{
         }
 
         if(!hasActiveCell){
-            //fill here to go to next level
-            System.out.println("Level cleared");
+            System.out.println("Level " + currentLevel + " cleared!");
+            currentLevel++;
+
+            gridX = 100;
+            gridY = 30;
+            gridDirection = 1;
+
+            gridSpeedX = 0.2;
+            gridCells.clear();
+            setupGrid(currentLevel);
             return;
         }
 
@@ -358,5 +467,9 @@ public class GamePanel extends JPanel{
                 exp.draw(g);
             }
         }
+
+        //draw level
+        g.setColor(Color.yellow);
+        g.drawString("LEVEL: " + currentLevel, getWidth() / 2 - 40, 30);
     }
 }

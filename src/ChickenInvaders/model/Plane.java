@@ -8,6 +8,9 @@ public class Plane {
     private int speed = 5;
     private int lives = 3;
     private JLabel planeLabel;
+    private int weaponLevel = 1;
+    private final int maxLives = 5;
+    private boolean isShielded = false;
 
     public Plane(int startX, int startY, ImageIcon planeIcon, JPanel mainPanel){
         this.x = startX;
@@ -61,7 +64,7 @@ public class Plane {
         return lives;
     }
 
-    public void decreaseLive(){
+    public void takeDamage(){
         if(lives > 0)
             lives--;
     }
@@ -76,5 +79,32 @@ public class Plane {
 
     public void removeFromPanel(JPanel panel){
         panel.remove(planeLabel);
+    }
+
+    public int getWeaponLevel(){
+        return weaponLevel;
+    }
+
+    public void upgradeWeapon(){
+        if(weaponLevel < 3)
+            weaponLevel++;
+    }
+
+    public void addLife(){
+        if(lives < maxLives)
+            lives++;
+    }
+
+    public boolean isShielded(){
+        return isShielded;
+    }
+
+    public void setShielded(boolean shielded){
+        this.isShielded = shielded;
+    }
+
+    public void decreaseLive(){
+        if(!isShielded && lives > 0)
+            lives--;
     }
 }
