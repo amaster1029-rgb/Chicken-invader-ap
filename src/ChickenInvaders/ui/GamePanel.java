@@ -2,8 +2,10 @@ package ChickenInvaders.ui;
 
 import ChickenInvaders.enemy.Enemy;
 import ChickenInvaders.enemy.NormalEnemy;
+import ChickenInvaders.enemy.ZigzagEnemy;
 import ChickenInvaders.main.GameMain;
 import ChickenInvaders.main.SoundManager;
+import ChickenInvaders.model.Egg;
 import ChickenInvaders.model.Plane;
 import ChickenInvaders.model.Bullet;
 import ChickenInvaders.enemy.Cell;
@@ -31,6 +33,11 @@ public class GamePanel extends JPanel{
     private int gridStepY = 20;
     private ImageIcon normalChickenIcon;
 
+    private List<Egg> eggs = new ArrayList<>();
+    private ImageIcon eggIcon;
+    private int eggSpawnTimer = 0;
+    private final int eggSpawnRate = 180;
+
     public GamePanel(GameMain gameMain){
         setLayout(null);
         setBounds(0, 0, 700, 500);
@@ -53,6 +60,10 @@ public class GamePanel extends JPanel{
         normalChickenIcon = new ImageIcon(originalChicken.getImage().getScaledInstance(45, 45, Image.SCALE_SMOOTH));
 
         setupGrid(1);
+
+        //load egg imag
+        ImageIcon originalEgg = new ImageIcon("chicken/egg.png");
+        eggIcon = new ImageIcon(originalEgg.getImage().getScaledInstance(15, 20, Image.SCALE_SMOOTH));
 
         gameTimer = new Timer(16, e -> {
 
@@ -99,6 +110,65 @@ public class GamePanel extends JPanel{
                     bullet.removeFromPanel(this);
                     bullets.remove(i);
                     i--;
+                }
+            }
+
+            eggSpawnTimer++;
+            if(eggSpawnTimer >= eggSpawnRate){
+                eggSpawnTimer = 0;
+
+                List<Enemy> activeEnemies = new ArrayList<>();
+                for(Cell cell : gridCells){
+                    Enemy ene = cell.getCurrentEnemy();
+                    if(ene != null && !ene.isArriving())
+                        activeEnemies.add(ene);
+                }
+
+                if(!activeEnemies.isEmpty()){
+                    int randomIndex = (int)(Math.random() * activeEnemies.size());
+                    Enemy shooter = activeEnemies.get(randomIndex);
+
+                    Egg newEgg = new Egg(shooter.getX() + 15, shooter.getY() + 40, 0, 4, eggIcon, GamePanel.this);
+                    eggs.add(newEgg);
+                }
+            }
+
+            //colision with airplane
+            for(int i = 0; i < eggs.size(); i++){
+                Egg egg = eggs.get(i);
+                egg.move();
+
+                //egg get out of the screen
+                if(egg.getY() > getHeight()){
+                    egg.removeFromPanel(GamePanel.this);
+                    eggs.remove(i);
+                    i--;
+                    continue;
+                }
+
+                if (playerPlane != null && egg.getBounds().intersects(playerPlane.getBounds())){
+                    playerPlane.decreaseLive();
+                    SoundManager.playExplosionSound("sound-effects/mixkit-epic-impact-afar-explosion-2782.wav");
+
+                    egg.removeFromPanel(GamePanel.this);
+                    eggs.remove(i);
+                    i--;
+
+                    //losing check
+                    if(playerPlane.isDead()){
+                        gameTimer.stop();
+                        SoundManager.playGameOverSound("sound-effects/mixkit-retro-arcade-game-over-470.wav");
+                        System.out.println("Game over");
+
+                        for (Egg eg : eggs){
+                            eg.removeFromPanel(GamePanel.this);
+                        }
+
+                        eggs.clear();
+
+                        gameMain.showPanel("MainMenu");
+                        return;
+                    }
                 }
             }
 
@@ -200,8 +270,25 @@ public class GamePanel extends JPanel{
 
         for(Cell cell : gridCells){
             Enemy enemy = cell.getCurrentEnemy();
-            if(enemy != null)
-                enemy.setLocation((int)gridX + cell.getOffsetX(), (int)gridY + cell.getOffsetY());
+
+            int targetX = (int)gridX + cell.getOffsetX();
+            int targetY = (int)gridY + cell.getOffsetY();
+
+            if(enemy == null && cell.getRespawnCounter() > 0){
+                int startX = (Math.random() > 0.5) ? 0 : getWidth();
+                int startY = -50;
+
+                NormalEnemy newChicken = new NormalEnemy(startX, startY, 1, normalChickenIcon, this);
+                newChicken.setArriving(true);
+
+                cell.setCurrentEnemy(newChicken);
+            }
+            else if(enemy != null){
+                if(enemy.isArriving())
+                    enemy.flyTowards(targetX, targetY);
+                else
+                    enemy.setLocation(targetX, targetY);
+            }
         }
     }
 
