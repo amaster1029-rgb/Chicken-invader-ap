@@ -7,6 +7,7 @@ public class Cell {
     private int offsetY;
     private int respawnCounter;
     private Enemy currentEnemy;
+    private int enemyType;
 
     public Cell(int offsetX, int offsetY, int initialCounter){
         this.offsetX = offsetX;
@@ -42,5 +43,13 @@ public class Cell {
 
     public boolean isCleared(){
         return respawnCounter <= 0 && currentEnemy == null;
+    }
+
+    public int getEnemyType(){
+        return enemyType;
+    }
+
+    public void setEnemyType(int enemyType){
+        this.enemyType = enemyType;
     }
 }

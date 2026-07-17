@@ -1,12 +1,9 @@
 package ChickenInvaders.ui;
 
-import ChickenInvaders.enemy.Enemy;
-import ChickenInvaders.enemy.NormalEnemy;
-import ChickenInvaders.enemy.ZigzagEnemy;
+import ChickenInvaders.enemy.*;
 import ChickenInvaders.main.GameMain;
 import ChickenInvaders.main.SoundManager;
 import ChickenInvaders.model.*;
-import ChickenInvaders.enemy.Cell;
 
 import javax.swing.*;
 import java.awt.*;
@@ -16,7 +13,10 @@ import java.util.List;
 import java.util.ArrayList;
 
 public class GamePanel extends JPanel{
-    private Image backgroundImg;
+    private GameMain gameMain;
+
+    private Image backgroundImg1;
+    private Image backgroundImg2;
     private Timer gameTimer;
     private Plane playerPlane;
     private List<Bullet> bullets = new ArrayList<>();
@@ -36,7 +36,7 @@ public class GamePanel extends JPanel{
     private List<Egg> eggs = new ArrayList<>();
     private ImageIcon eggIcon;
     private int eggSpawnTimer = 0;
-    private final int eggSpawnRate = 180;
+    private int eggSpawnRate = 180;
 
     //score
     private int score = 0;
@@ -56,13 +56,19 @@ public class GamePanel extends JPanel{
 
     private boolean isPaused = false;
 
+    private ImageIcon fastChickenIcon;
+
     public GamePanel(GameMain gameMain){
+        this.gameMain = gameMain;
         setLayout(null);
         setBounds(0, 0, 700, 500);
 
         //load background image
         ImageIcon originalBG = new ImageIcon("background/background.jpg");
-        backgroundImg = originalBG.getImage();
+        backgroundImg1 = originalBG.getImage();
+
+        ImageIcon originalBG2 = new ImageIcon("background/background2.jpg");
+        backgroundImg2 = originalBG2.getImage();
 
         //adding plane
         ImageIcon originalImg = new ImageIcon("airplan/1.png");
@@ -74,8 +80,12 @@ public class GamePanel extends JPanel{
         Image scaledShot = originalShot.getImage().getScaledInstance(5, 20, Image.SCALE_SMOOTH);
         shotIcon = new ImageIcon(scaledShot);
 
+        //load chickens
         ImageIcon originalChicken = new ImageIcon("chicken/normal_chicken.png");
         normalChickenIcon = new ImageIcon(originalChicken.getImage().getScaledInstance(45, 45, Image.SCALE_SMOOTH));
+
+        ImageIcon originalFastChicken = new ImageIcon("chicken/fast_chicken.png");
+        fastChickenIcon = new ImageIcon(originalFastChicken.getImage().getScaledInstance(45, 45, Image.SCALE_SMOOTH));
 
         setupGrid(1);
 
@@ -230,9 +240,6 @@ public class GamePanel extends JPanel{
                         playerPlane.takeDamage();
                         SoundManager.playExplosionSound("sound-effects/mixkit-epic-impact-afar-explosion-2782.wav");
                         explosions.add(new Explosion(playerPlane.getX() + 30, playerPlane.getY() + 30, Color.orange));
-
-                        shieldTimer = 120;
-                        playerPlane.setShielded(true);
                     }
 
                     egg.removeFromPanel(GamePanel.this);
@@ -401,23 +408,65 @@ public class GamePanel extends JPanel{
     }
 
     private void setupGrid(int level){
+        gridCells.clear();
         int rows = 5;
         int cols = 8;
-        int gapX = 60;
-        int gapY = 45;
-        int initialCounter = 2;
+        int respawnCount = 2;
+
+        switch (level){
+            case 1:
+                respawnCount = 2;
+                gridSpeedX = 1.0;
+                gridStepY = 20;
+                eggSpawnRate = (int)(3.0 * 60);
+                break;
+            case 2:
+                respawnCount = 2;
+                gridSpeedX = 1.5;
+                gridStepY = 20;
+                eggSpawnRate = (int)(2.0 * 60);
+                break;
+            case 3:
+                respawnCount = 3;
+                gridSpeedX = 2.0;
+                gridStepY = 25;
+                eggSpawnRate = (int)(1.5 * 60);
+                break;
+            case 5:
+                respawnCount = 3;
+                gridSpeedX = 2.5;
+                gridStepY = 25;
+                eggSpawnRate = (int)(1.0 * 60);
+                break;
+            case 6:
+                respawnCount = 4;
+                gridSpeedX = 3.0;
+                gridStepY = 30;
+                eggSpawnRate = (int)(0.8 * 60);
+                break;
+            case 7:
+                respawnCount = 4;
+                gridSpeedX = 3.5;
+                gridStepY = 30;
+                eggSpawnRate = (int)(0.7 * 60);
+        }
 
         for(int r = 0; r < rows; r++){
             for (int c = 0; c < cols; c++){
-                int offsetX = c * gapX;
-                int offsetY = r * gapY;
+                int offsetX = c * 60;
+                int offsetY = r * 45;
 
-                Cell cell = new Cell(offsetX, offsetY, initialCounter);
+                Cell cell = new Cell(offsetX, offsetY, respawnCount);
 
-                NormalEnemy chicken = new NormalEnemy((int)gridX + offsetX, (int)gridY + offsetY,
-                        level, normalChickenIcon, this);
+                int startX = (int)gridX + offsetX;
+                int startY = (int)gridY + offsetY;
 
-                cell.setCurrentEnemy(chicken);
+                int type = getRandomEnemyTypeForLevel(level);
+                cell.setEnemyType(type);
+
+                Enemy enemy = creatEnemyByType(type, startX, startY);
+
+                cell.setCurrentEnemy(enemy);
                 gridCells.add(cell);
             }
         }
@@ -486,7 +535,9 @@ public class GamePanel extends JPanel{
                 int startX = (Math.random() > 0.5) ? 0 : getWidth();
                 int startY = -50;
 
-                NormalEnemy newChicken = new NormalEnemy(startX, startY, 1, normalChickenIcon, this);
+                int type = cell.getEnemyType();
+
+                Enemy newChicken = creatEnemyByType(type, startX, startY);
                 newChicken.setArriving(true);
 
                 cell.setCurrentEnemy(newChicken);
@@ -507,8 +558,33 @@ public class GamePanel extends JPanel{
         super.paintComponent(g);
 
         //draw background
-        if(backgroundImg != null)
-            g.drawImage(backgroundImg, 0, 0, getWidth(), getHeight(), this);
+        if(backgroundImg1 != null && currentLevel <= 4)
+            g.drawImage(backgroundImg1, 0, 0, getWidth(), getHeight(), this);
+        else if (backgroundImg2 != null && currentLevel > 4)
+            g.drawImage(backgroundImg2, 0, 0, getWidth(), getHeight(), this);
+
+        //draw snow effects
+        if(freezeTimer > 0){
+            Graphics2D g2d = (Graphics2D) g;
+            Composite originalComposite = g2d.getComposite();
+
+            g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.2f));
+            g2d.setColor(new Color(60, 193, 205, 255));
+            g2d.fillRect(0, 0, getWidth(), getHeight());
+
+
+            if(snowflakeImg != null){
+                g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.15f));
+
+                int snowSize = 450;
+                int snowX = (getWidth() - snowSize) / 2;
+                int snowY = (getHeight() - snowSize) / 2;
+
+                g2d.drawImage(snowflakeImg, snowX, snowY, snowSize, snowSize, this);
+            }
+
+            g2d.setComposite(originalComposite);
+        }
 
         //draw lives
         if(playerPlane != null){
@@ -573,29 +649,6 @@ public class GamePanel extends JPanel{
                 exp.draw(g);
             }
 
-            //draw snow effects
-            if(freezeTimer > 0){
-                Graphics2D g2d = (Graphics2D) g;
-                Composite originalComposite = g2d.getComposite();
-
-                g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.2f));
-                g2d.setColor(new Color(60, 193, 205, 255));
-                g2d.fillRect(0, 0, getWidth(), getHeight());
-
-
-                if(snowflakeImg != null){
-                    g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.15f));
-
-                    int snowSize = 450;
-                    int snowX = (getWidth() - snowSize) / 2;
-                    int snowY = (getHeight() - snowSize) / 2;
-
-                    g2d.drawImage(snowflakeImg, snowX, snowY, snowSize, snowSize, this);
-                }
-
-                g2d.setComposite(originalComposite);
-            }
-
             //draw shield
             if(playerPlane.isShielded()){
                 Graphics2D g2d = (Graphics2D) g;
@@ -649,22 +702,39 @@ public class GamePanel extends JPanel{
         SoundManager.playGameOverSound("sound-effects/mixkit-retro-arcade-game-over-470.wav");
         System.out.println("Game Over");
 
-        for(Egg egg : eggs){
+        for(Egg egg : eggs)
             egg.removeFromPanel(GamePanel.this);
-            eggs.clear();
-        }
+        eggs.clear();
 
-        for(PowerUp powerUp : powerUps){
+        for(PowerUp powerUp : powerUps)
             powerUp.removeFromPanel(GamePanel.this);
-            powerUps.clear();
-        }
+        powerUps.clear();
 
-        for(Bullet bullet : bullets){
+        for(Bullet bullet : bullets)
             bullet.removeFromPanel(GamePanel.this);
-            bullets.clear();
+        bullets.clear();
+
+        if(this.gameMain != null)
+            gameMain.showPanel("MainMenu");
+    }
+
+    public int getRandomEnemyTypeForLevel(int level){
+        if(level == 1)
+            return 1;
+        else if (level == 2) {
+            return (Math.random() > 0.5) ? 1 : 2;
+        }
+        else if (level == 3) {
+            return 1;
+            //fill here
         }
 
-        GameMain gameMain = new GameMain();
-        gameMain.showPanel("MainMenu");
+        return 1;
+    }
+
+    private Enemy creatEnemyByType(int type, int startX, int startY){
+        if(type == 2)
+            return new FastEnemy(startX, startY, currentLevel, fastChickenIcon, this);
+        return new NormalEnemy(startX, startY, currentLevel, normalChickenIcon, this);
     }
 }
