@@ -52,6 +52,8 @@ public class GamePanel extends JPanel{
     private int freezeTimer = 0;
     private ImageIcon addFireIcon, rapidFireIcon, extraLifeIcon, shieldIcon, freezeIcon;
 
+    private Image snowflakeImg;
+
     public GamePanel(GameMain gameMain){
         setLayout(null);
         setBounds(0, 0, 700, 500);
@@ -94,6 +96,10 @@ public class GamePanel extends JPanel{
 
         ImageIcon originalFreeze = new ImageIcon("powerup1/freeze.png");
         freezeIcon = new ImageIcon(originalFreeze.getImage().getScaledInstance(30, 30, Image.SCALE_SMOOTH));
+
+        //load snowflake image
+        ImageIcon originalSnow = new ImageIcon("chicken/snowflake.png");
+        snowflakeImg = originalSnow.getImage();
 
         gameTimer = new Timer(16, e -> {
 
@@ -550,6 +556,29 @@ public class GamePanel extends JPanel{
             //draw explosion
             for (Explosion exp : explosions){
                 exp.draw(g);
+            }
+
+            //draw snow effects
+            if(freezeTimer > 0){
+                Graphics2D g2d = (Graphics2D) g;
+                Composite originalComposite = g2d.getComposite();
+
+                g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.2f));
+                g2d.setColor(new Color(60, 193, 205, 255));
+                g2d.fillRect(0, 0, getWidth(), getHeight());
+
+
+                if(snowflakeImg != null){
+                    g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.15f));
+
+                    int snowSize = 450;
+                    int snowX = (getWidth() - snowSize) / 2;
+                    int snowY = (getHeight() - snowSize) / 2;
+
+                    g2d.drawImage(snowflakeImg, snowX, snowY, snowSize, snowSize, this);
+                }
+
+                g2d.setComposite(originalComposite);
             }
 
             //draw shield
