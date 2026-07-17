@@ -99,7 +99,8 @@ public class GamePanel extends JPanel{
 
             if(freezeTimer > 0)
                 freezeTimer--;
-            else
+
+            if(freezeTimer <= 0)
                 moveGrid();
 
             if(shieldTimer > 0){
@@ -111,7 +112,6 @@ public class GamePanel extends JPanel{
             if(rapidFireTimer > 0)
                 rapidFireTimer--;
 
-            moveGrid();
             //moving bullets
             for(int i = 0; i < bullets.size(); i++){
                 Bullet bullet = bullets.get(i);
@@ -176,30 +176,33 @@ public class GamePanel extends JPanel{
                 }
             }
 
-            eggSpawnTimer++;
-            if(eggSpawnTimer >= eggSpawnRate){
-                eggSpawnTimer = 0;
+            if(freezeTimer <= 0) {
+                eggSpawnTimer++;
+                if (eggSpawnTimer >= eggSpawnRate) {
+                    eggSpawnTimer = 0;
 
-                List<Enemy> activeEnemies = new ArrayList<>();
-                for(Cell cell : gridCells){
-                    Enemy ene = cell.getCurrentEnemy();
-                    if(ene != null && !ene.isArriving())
-                        activeEnemies.add(ene);
-                }
+                    List<Enemy> activeEnemies = new ArrayList<>();
+                    for (Cell cell : gridCells) {
+                        Enemy ene = cell.getCurrentEnemy();
+                        if (ene != null && !ene.isArriving())
+                            activeEnemies.add(ene);
+                    }
 
-                if(!activeEnemies.isEmpty()){
-                    int randomIndex = (int)(Math.random() * activeEnemies.size());
-                    Enemy shooter = activeEnemies.get(randomIndex);
+                    if (!activeEnemies.isEmpty()) {
+                        int randomIndex = (int) (Math.random() * activeEnemies.size());
+                        Enemy shooter = activeEnemies.get(randomIndex);
 
-                    Egg newEgg = new Egg(shooter.getX() + 15, shooter.getY() + 40, 0, 4, eggIcon, GamePanel.this);
-                    eggs.add(newEgg);
+                        Egg newEgg = new Egg(shooter.getX() + 15, shooter.getY() + 40, 0, 4, eggIcon, GamePanel.this);
+                        eggs.add(newEgg);
+                    }
                 }
             }
 
             //colision with airplane
             for(int i = 0; i < eggs.size(); i++){
                 Egg egg = eggs.get(i);
-                egg.move();
+                if(freezeTimer <= 0)
+                    egg.move();
 
                 //egg get out of the screen
                 if(egg.getY() > getHeight()){
@@ -210,9 +213,14 @@ public class GamePanel extends JPanel{
                 }
 
                 if (playerPlane != null && egg.getBounds().intersects(playerPlane.getBounds())){
-                    playerPlane.takeDamage();
-                    SoundManager.playExplosionSound("sound-effects/mixkit-epic-impact-afar-explosion-2782.wav");
-                    explosions.add(new Explosion(playerPlane.getX() + 30, playerPlane.getY() + 30, Color.orange));
+                    if(!playerPlane.isShielded()) {
+                        playerPlane.takeDamage();
+                        SoundManager.playExplosionSound("sound-effects/mixkit-epic-impact-afar-explosion-2782.wav");
+                        explosions.add(new Explosion(playerPlane.getX() + 30, playerPlane.getY() + 30, Color.orange));
+
+                        shieldTimer = 120;
+                        playerPlane.setShielded(true);
+                    }
 
                     egg.removeFromPanel(GamePanel.this);
                     eggs.remove(i);
@@ -220,17 +228,7 @@ public class GamePanel extends JPanel{
 
                     //losing check
                     if(playerPlane.isDead()){
-                        gameTimer.stop();
-                        SoundManager.playGameOverSound("sound-effects/mixkit-retro-arcade-game-over-470.wav");
-                        System.out.println("Game over");
-
-                        for (Egg eg : eggs){
-                            eg.removeFromPanel(GamePanel.this);
-                        }
-
-                        eggs.clear();
-
-                        gameMain.showPanel("MainMenu");
+                        triggerGameOver();
                         return;
                     }
                 }
@@ -274,6 +272,39 @@ public class GamePanel extends JPanel{
                     powerUps.remove(i);
                     i--;
                 }
+            }
+
+            //checking if chickens reached the end of the screen
+            boolean reachBottom = false;
+
+            for(Cell cell : gridCells) {
+                Enemy enemy = cell.getCurrentEnemy();
+
+                if (enemy != null && !enemy.isArriving() && !cell.isCleared()) {
+
+                    //collision with airplane
+                    if (playerPlane != null && enemy.getBounds().intersects(playerPlane.getBounds())) {
+                        if(!playerPlane.isShielded()) {
+                            playerPlane.takeDamage();
+                            SoundManager.playExplosionSound("sound-effects/mixkit-epic-impact-afar-explosion-2782.wav");
+                            explosions.add(new Explosion(playerPlane.getX() + 30, playerPlane.getY() + 30, Color.orange));
+
+                            shieldTimer = 120;
+                            playerPlane.setShielded(true);
+                        }
+
+                        if (playerPlane.isDead()) {
+                            triggerGameOver();
+                            return;
+                        }
+                    }
+                }
+            }
+
+            if(reachBottom){
+                System.out.println("Enemies reached bottom");
+                triggerGameOver();
+                return;
             }
 
             repaint();
@@ -374,6 +405,7 @@ public class GamePanel extends JPanel{
     private void moveGrid(){
         int minOffsetX = Integer.MAX_VALUE;
         int maxOffsetX = Integer.MIN_VALUE;
+        int maxOffsetY = Integer.MIN_VALUE;
         boolean hasActiveCell = false;
 
         for(Cell cell : gridCells){
@@ -382,6 +414,8 @@ public class GamePanel extends JPanel{
                     minOffsetX = cell.getOffsetX();
                 if(cell.getOffsetX() > maxOffsetX)
                     maxOffsetX = cell.getOffsetX();
+                if(cell.getOffsetY() > maxOffsetY)
+                    maxOffsetY = cell.getOffsetY();
                 hasActiveCell = true;
             }
         }
@@ -389,11 +423,9 @@ public class GamePanel extends JPanel{
         if(!hasActiveCell){
             System.out.println("Level " + currentLevel + " cleared!");
             currentLevel++;
-
             gridX = 100;
             gridY = 30;
             gridDirection = 1;
-
             gridSpeedX = 0.2;
             gridCells.clear();
             setupGrid(currentLevel);
@@ -403,6 +435,8 @@ public class GamePanel extends JPanel{
         gridX += gridSpeedX * gridDirection;
 
         int enemyWidth = 45;
+        int enemyHeight = 45;
+
         //right collision
         if(gridX + maxOffsetX + enemyWidth >= getWidth()){
             gridX = getWidth() - (maxOffsetX + enemyWidth);
@@ -412,6 +446,13 @@ public class GamePanel extends JPanel{
             gridX = -minOffsetX;
             gridDirection = 1;
             gridY += gridStepY;
+        }
+
+        //collision with the end of the screen
+        if(gridY + maxOffsetY + enemyHeight >= getHeight()){
+            System.out.println("Enemy reached bottom");
+            triggerGameOver();
+            return;
         }
 
         for(Cell cell : gridCells){
@@ -459,17 +500,111 @@ public class GamePanel extends JPanel{
                 g.drawImage(lifeIcon, 95 + (i * 40), 10, 25, 25, this);
             }
 
+            //draw user name
+            g.setColor(Color.white);
+            g.setFont(new Font("Arial", Font.BOLD, 20));
+            //g.drawString("PLAYER: " + username, 20, 20);
+
             //draw score
             g.setColor(Color.white);
-            g.drawString("Score: " + score, getWidth() - 150, 30);
+            g.drawString("SCORE: " + score, getWidth() - 150, 30);
 
+            //temprory power up marks
+            int iconSize = 40;
+            int powerUpX = getWidth() - 120;
+            int powerUpY = getHeight() - 60;
+
+            g.setFont(new Font("Arial", Font.BOLD, 18));
+
+            if(shieldTimer > 0 && shieldIcon != null){
+                g.drawImage(shieldIcon.getImage(), powerUpX, powerUpY, iconSize, iconSize, this);
+                g.setColor(Color.cyan);
+                g.drawString((shieldTimer / 60) + "s", powerUpX + iconSize + 10, powerUpY + 28);
+                powerUpY -= 50;
+            }
+
+            if(rapidFireTimer > 0 && rapidFireIcon != null){
+                g.drawImage(rapidFireIcon.getImage(), powerUpX, powerUpY, iconSize, iconSize, this);
+                g.setColor(Color.red);
+                g.drawString((rapidFireTimer / 60) + "s", powerUpX + iconSize +10, powerUpY + 28);
+                powerUpY -= 50;
+            }
+
+            if(freezeTimer > 0 && freezeIcon != null){
+                g.drawImage(freezeIcon.getImage(), powerUpX, powerUpY, iconSize, iconSize, this);
+                g.setColor(new Color(100, 200, 255));
+                g.drawString((freezeTimer / 60) + "s", powerUpX + iconSize + 10, powerUpY + 28);
+                powerUpY -= 50;
+            }
+
+            int weaponIconSize = 40;
+            int weaponX = 20;
+            int weaponY = getHeight() - 60;
+
+            if(addFireIcon != null)
+                g.drawImage(addFireIcon.getImage(), weaponX, weaponY, weaponIconSize, weaponIconSize, this);
+            g.setColor(Color.orange);
+            g.setFont(new Font("Arial", Font.BOLD, 22));
+            g.drawString("x " + playerPlane.getWeaponLevel(), weaponX + weaponIconSize + 10, weaponY + 28);
+
+            //draw explosion
             for (Explosion exp : explosions){
                 exp.draw(g);
+            }
+
+            //draw shield
+            if(playerPlane.isShielded()){
+                Graphics2D g2d = (Graphics2D) g;
+
+                Composite originalComposite = g2d.getComposite();
+                Stroke originalStroke = g2d.getStroke();
+
+                int planeSize = 60;
+                int centerX = playerPlane.getX() + planeSize / 2;
+                int centerY = playerPlane.getY() + planeSize / 2;
+
+                int shieldRadius = 45;
+                int diameter = shieldRadius * 2;
+
+                g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f));
+                g2d.setColor(Color.cyan);
+                g2d.fillOval(centerX - shieldRadius, centerY - shieldRadius, diameter, diameter);
+
+                g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.8f));
+                g2d.setStroke(new BasicStroke(3));
+                g2d.drawOval(centerX - shieldRadius, centerY - shieldRadius, diameter, diameter);
+
+                g2d.setComposite(originalComposite);
+                g2d.setStroke(originalStroke);
             }
         }
 
         //draw level
         g.setColor(Color.yellow);
         g.drawString("LEVEL: " + currentLevel, getWidth() / 2 - 40, 30);
+    }
+
+    public void triggerGameOver(){
+        gameTimer.stop();
+        SoundManager.playGameOverSound("sound-effects/mixkit-retro-arcade-game-over-470.wav");
+        System.out.println("Game Over");
+
+        for(Egg egg : eggs){
+            egg.removeFromPanel(GamePanel.this);
+            eggs.clear();
+        }
+
+        for(PowerUp powerUp : powerUps){
+            powerUp.removeFromPanel(GamePanel.this);
+            powerUps.clear();
+        }
+
+        for(Bullet bullet : bullets){
+            bullet.removeFromPanel(GamePanel.this);
+            bullets.clear();
+        }
+
+        GameMain gameMain = new GameMain();
+        gameMain.showPanel("MainMenu");
     }
 }

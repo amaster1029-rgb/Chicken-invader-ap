@@ -42,7 +42,7 @@ public class Plane {
     }
 
     public void moveUp(){
-        if(y >= 0){
+        if(y > 250){
             y -= speed;
             updateBounds();
         }
