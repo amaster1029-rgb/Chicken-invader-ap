@@ -54,6 +54,8 @@ public class GamePanel extends JPanel{
 
     private Image snowflakeImg;
 
+    private boolean isPaused = false;
+
     public GamePanel(GameMain gameMain){
         setLayout(null);
         setBounds(0, 0, 700, 500);
@@ -102,6 +104,11 @@ public class GamePanel extends JPanel{
         snowflakeImg = originalSnow.getImage();
 
         gameTimer = new Timer(16, e -> {
+
+            if(isPaused){
+                repaint();
+                return;
+            }
 
             if(freezeTimer > 0)
                 freezeTimer--;
@@ -325,6 +332,14 @@ public class GamePanel extends JPanel{
             @Override
             public void keyPressed(KeyEvent e) {
                 int keyCode = e.getKeyCode();
+
+                if(keyCode == KeyEvent.VK_P) {
+                    isPaused = !isPaused;
+                    return;
+                }
+
+                if(isPaused)
+                    return;
 
                 //move right
                 if(keyCode == KeyEvent.VK_RIGHT || keyCode == KeyEvent.VK_D)
@@ -611,6 +626,22 @@ public class GamePanel extends JPanel{
         //draw level
         g.setColor(Color.yellow);
         g.drawString("LEVEL: " + currentLevel, getWidth() / 2 - 40, 30);
+
+        //draw pause
+        if(isPaused){
+            Graphics2D g2d = (Graphics2D) g;
+
+            g2d.setColor(new Color(0, 0, 0, 150));
+            g2d.fillRect(0, 0, getWidth(), getHeight());
+
+            g2d.setColor(new Color(0xAC0A0A));
+            g2d.setFont(new Font("Arial", Font.ITALIC, 50));
+            String msg = "PAUSED";
+            FontMetrics fm = g2d.getFontMetrics();
+            int msgX = (getWidth() - fm.stringWidth(msg)) / 2;
+            int msgY = getHeight() / 2;
+            g2d.drawString(msg, msgX, msgY);
+        }
     }
 
     public void triggerGameOver(){
