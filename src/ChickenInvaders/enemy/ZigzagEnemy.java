@@ -35,6 +35,14 @@ public class ZigzagEnemy extends Enemy{
     }
 
     @Override
+    public void setLocation(int newX, int newY) {
+        waveAngle += 0.2;
+        int zigzagOffset = (int) (Math.sin(waveAngle) * 20);
+
+        super.setLocation(newX + zigzagOffset, newY);
+    }
+
+    @Override
     public void attackBehavior() {
         
     }

@@ -86,7 +86,7 @@ public class Plane {
     }
 
     public void upgradeWeapon(){
-        if(weaponLevel < 3)
+        if(weaponLevel < 5)
             weaponLevel++;
     }
 

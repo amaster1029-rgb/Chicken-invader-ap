@@ -57,6 +57,7 @@ public class GamePanel extends JPanel{
     private boolean isPaused = false;
 
     private ImageIcon fastChickenIcon;
+    private ImageIcon zigzagChickenIcon;
 
     public GamePanel(GameMain gameMain){
         this.gameMain = gameMain;
@@ -86,6 +87,9 @@ public class GamePanel extends JPanel{
 
         ImageIcon originalFastChicken = new ImageIcon("chicken/fast_chicken.png");
         fastChickenIcon = new ImageIcon(originalFastChicken.getImage().getScaledInstance(45, 45, Image.SCALE_SMOOTH));
+
+        ImageIcon originalZigzagChicken = new ImageIcon("chicken/zigzag_chicken.png");
+        zigzagChickenIcon = new ImageIcon(originalZigzagChicken.getImage().getScaledInstance(45, 45, Image.SCALE_SMOOTH));
 
         setupGrid(1);
 
@@ -383,10 +387,23 @@ public class GamePanel extends JPanel{
                             bullets.add(new Bullet(px + 12, py + 10, shotIcon, GamePanel.this));
                             bullets.add(new Bullet(px - 12, py + 10, shotIcon, GamePanel.this));
                         }
-                        else if(wLevel >= 3) {
+                        else if(wLevel == 3) {
                             bullets.add(new Bullet(px - 15, py + 15, shotIcon, GamePanel.this));
                             bullets.add(new Bullet(px, py - 5, shotIcon, GamePanel.this));
                             bullets.add(new Bullet(px + 15, py + 15, shotIcon, GamePanel.this));
+                        }
+                        else if(wLevel == 4 && currentLevel > 4){
+                            bullets.add(new Bullet(px - 15, py + 10, shotIcon, GamePanel.this));
+                            bullets.add(new Bullet(px - 5, py + 10, shotIcon, GamePanel.this));
+                            bullets.add(new Bullet(px + 5, py + 10, shotIcon, GamePanel.this));
+                            bullets.add(new Bullet(px + 15, py + 10, shotIcon, GamePanel.this));
+                        }
+                        else if(wLevel == 5 && currentLevel > 4){
+                            bullets.add(new Bullet(px - 20, py + 10, shotIcon, GamePanel.this));
+                            bullets.add(new Bullet(px - 10, py + 10, shotIcon, GamePanel.this));
+                            bullets.add(new Bullet(px, py + 15, shotIcon, GamePanel.this));
+                            bullets.add(new Bullet(px + 10, py + 10, shotIcon, GamePanel.this));
+                            bullets.add(new Bullet(px + 20, py + 10, shotIcon, GamePanel.this));
                         }
                     }
                 }
@@ -725,8 +742,7 @@ public class GamePanel extends JPanel{
             return (Math.random() > 0.5) ? 1 : 2;
         }
         else if (level == 3) {
-            return 1;
-            //fill here
+            return (Math.random() > 0.5) ? 1 : 3;
         }
 
         return 1;
@@ -735,6 +751,8 @@ public class GamePanel extends JPanel{
     private Enemy creatEnemyByType(int type, int startX, int startY){
         if(type == 2)
             return new FastEnemy(startX, startY, currentLevel, fastChickenIcon, this);
+        if(type == 3)
+            return  new ZigzagEnemy(startX, startY, currentLevel, zigzagChickenIcon, this);
         return new NormalEnemy(startX, startY, currentLevel, normalChickenIcon, this);
     }
 }
