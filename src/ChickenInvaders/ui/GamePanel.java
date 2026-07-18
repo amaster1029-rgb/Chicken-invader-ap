@@ -44,6 +44,12 @@ public class GamePanel extends JPanel{
     //explosion
     private List<Explosion> explosions = new ArrayList<>();
 
+    //boss explosion
+    private Image bossExplosionImg;
+    private int bossExplosionTimer = 0;
+    private int bossExpX = 0;
+    private int bossExpY = 0;
+
     //power up
     private int currentLevel = 1;
     private List<PowerUp> powerUps = new ArrayList<>();
@@ -58,6 +64,9 @@ public class GamePanel extends JPanel{
 
     private ImageIcon fastChickenIcon;
     private ImageIcon zigzagChickenIcon;
+    private ImageIcon boss1Icon;
+
+    private int levelTransitionTimer = 0;
 
     public GamePanel(GameMain gameMain){
         this.gameMain = gameMain;
@@ -91,6 +100,9 @@ public class GamePanel extends JPanel{
         ImageIcon originalZigzagChicken = new ImageIcon("chicken/zigzag_chicken.png");
         zigzagChickenIcon = new ImageIcon(originalZigzagChicken.getImage().getScaledInstance(45, 45, Image.SCALE_SMOOTH));
 
+        ImageIcon originalBoss1 = new ImageIcon("chicken/boss1.png");
+        boss1Icon = new ImageIcon(originalBoss1.getImage().getScaledInstance(150, 150, Image.SCALE_SMOOTH));
+
         setupGrid(1);
 
         //load egg imag
@@ -117,11 +129,28 @@ public class GamePanel extends JPanel{
         ImageIcon originalSnow = new ImageIcon("chicken/snowflake.png");
         snowflakeImg = originalSnow.getImage();
 
+        //load boss explosion image
+        ImageIcon originalBossExp = new ImageIcon("airplan/Explosion.png");
+        bossExplosionImg = originalBossExp.getImage().getScaledInstance(200, 200, Image.SCALE_SMOOTH);
+
         gameTimer = new Timer(16, e -> {
 
             if(isPaused){
                 repaint();
                 return;
+            }
+
+            if(levelTransitionTimer > 0){
+                levelTransitionTimer--;
+                if(levelTransitionTimer == 0){
+                    System.out.println("Level " + currentLevel + " cleared");
+                    currentLevel++;
+                    gridX = 100;
+                    gridY = 30;
+                    gridDirection = 1;
+                    gridCells.clear();
+                    setupGrid(currentLevel);
+                }
             }
 
             if(freezeTimer > 0)
@@ -138,6 +167,9 @@ public class GamePanel extends JPanel{
 
             if(rapidFireTimer > 0)
                 rapidFireTimer--;
+
+            if(bossExplosionTimer > 0)
+                bossExplosionTimer--;
 
             //moving bullets
             for(int i = 0; i < bullets.size(); i++){
@@ -170,9 +202,14 @@ public class GamePanel extends JPanel{
 
                                 SoundManager.playExplosionSound("sound-effects/mixkit-epic-impact-afar-explosion-2782.wav");
 
-                                explosions.add(new Explosion(enemy.getX() + 22, enemy.getY() + 22, Color.orange));
+                                if(enemy instanceof BossLevel4 || enemy instanceof BossLevel8){
+                                    bossExpX = enemy.getX() - 25;
+                                    bossExpY = enemy.getY() - 25;
+                                    bossExplosionTimer = 60;
+                                }else
+                                    explosions.add(new Explosion(enemy.getX() + 22, enemy.getY() + 22, Color.orange));
 
-                                score += 10;
+                                score += (enemy instanceof BossLevel4 || enemy instanceof BossLevel8) ? 500 : 10;
 
                                 if(Math.random() < 0.20){
                                     PowerUp.Type[] types = PowerUp.Type.values();
@@ -219,8 +256,21 @@ public class GamePanel extends JPanel{
                         int randomIndex = (int) (Math.random() * activeEnemies.size());
                         Enemy shooter = activeEnemies.get(randomIndex);
 
-                        Egg newEgg = new Egg(shooter.getX() + 15, shooter.getY() + 40, 0, 4, eggIcon, GamePanel.this);
-                        eggs.add(newEgg);
+                        boolean isBoss = (shooter instanceof BossLevel4 || shooter instanceof BossLevel8);
+                        int cx = shooter.getX() + (isBoss ? 50 : 15);
+                        int cy = shooter.getY() + (isBoss ? 100 : 40);
+
+                        if(currentLevel == 4 && isBoss){
+                            eggs.add(new Egg(cx, cy, 0, -4, eggIcon, GamePanel.this)); // up
+                            eggs.add(new Egg(cx, cy, 0, 4, eggIcon, GamePanel.this)); // down
+                            eggs.add(new Egg(cx, cy, -4, 0, eggIcon, GamePanel.this)); //left
+                            eggs.add(new Egg(cx, cy, 4, 0, eggIcon, GamePanel.this)); //right
+                        }
+                        else if(currentLevel == 8 && isBoss){
+
+                        }
+                        else
+                            eggs.add(new Egg(cx, cy, 0, 4, eggIcon, GamePanel.this));
                     }
                 }
             }
@@ -282,7 +332,14 @@ public class GamePanel extends JPanel{
 
                 if(playerPlane != null && p.getBounds().intersects(playerPlane.getBounds())){
                     switch (p.getType()){
-                        case addFire -> playerPlane.upgradeWeapon();
+
+                        case addFire -> {
+                            int wLevel = playerPlane.getWeaponLevel();
+                            if (currentLevel <= 4 && wLevel < 3)
+                                playerPlane.upgradeWeapon();
+                            else if (currentLevel > 4 && wLevel < 5)
+                                playerPlane.upgradeWeapon();
+                        }
                         case extraLife -> playerPlane.addLife();
                         case rapidFire -> rapidFireTimer = 480; //8s
                         case freeze -> freezeTimer = 180; //3s
@@ -299,8 +356,6 @@ public class GamePanel extends JPanel{
             }
 
             //checking if chickens reached the end of the screen
-            boolean reachBottom = false;
-
             for(Cell cell : gridCells) {
                 Enemy enemy = cell.getCurrentEnemy();
 
@@ -323,12 +378,6 @@ public class GamePanel extends JPanel{
                         }
                     }
                 }
-            }
-
-            if(reachBottom){
-                System.out.println("Enemies reached bottom");
-                triggerGameOver();
-                return;
             }
 
             repaint();
@@ -380,31 +429,28 @@ public class GamePanel extends JPanel{
                         int px = playerPlane.getX();
                         int py = playerPlane.getY();
 
-                        if(wLevel == 1) {
+                        if (wLevel == 1) {
                             bullets.add(new Bullet(px, py, shotIcon, GamePanel.this));
-                        }
-                        else if (wLevel == 2) {
+                        } else if (wLevel == 2) {
                             bullets.add(new Bullet(px + 12, py + 10, shotIcon, GamePanel.this));
                             bullets.add(new Bullet(px - 12, py + 10, shotIcon, GamePanel.this));
-                        }
-                        else if(wLevel == 3) {
+                        } else if (wLevel == 3) {
                             bullets.add(new Bullet(px - 15, py + 15, shotIcon, GamePanel.this));
                             bullets.add(new Bullet(px, py - 5, shotIcon, GamePanel.this));
                             bullets.add(new Bullet(px + 15, py + 15, shotIcon, GamePanel.this));
-                        }
-                        else if(wLevel == 4 && currentLevel > 4){
+                        }else if (wLevel == 4) {
                             bullets.add(new Bullet(px - 15, py + 10, shotIcon, GamePanel.this));
                             bullets.add(new Bullet(px - 5, py + 10, shotIcon, GamePanel.this));
                             bullets.add(new Bullet(px + 5, py + 10, shotIcon, GamePanel.this));
                             bullets.add(new Bullet(px + 15, py + 10, shotIcon, GamePanel.this));
-                        }
-                        else if(wLevel == 5 && currentLevel > 4){
+                        } else if (wLevel >= 5) {
                             bullets.add(new Bullet(px - 20, py + 10, shotIcon, GamePanel.this));
                             bullets.add(new Bullet(px - 10, py + 10, shotIcon, GamePanel.this));
                             bullets.add(new Bullet(px, py + 15, shotIcon, GamePanel.this));
                             bullets.add(new Bullet(px + 10, py + 10, shotIcon, GamePanel.this));
                             bullets.add(new Bullet(px + 20, py + 10, shotIcon, GamePanel.this));
                         }
+
                     }
                 }
 
@@ -426,6 +472,31 @@ public class GamePanel extends JPanel{
 
     private void setupGrid(int level){
         gridCells.clear();
+
+        //boss level 4 & 8
+        if(level == 4 || level == 8){
+            gridSpeedX = (level == 4) ? 1.5 : 2.0;
+            gridStepY = 0;
+            eggSpawnRate = (level == 4) ? (int)(1.5 * 60) : (int)(1.0 * 60);
+
+            Cell bossCell = new Cell(0, 0, 0);
+            bossCell.setEnemyType(4);
+
+            int startX = (getWidth() - 150) / 2;
+            int startY = 80;
+
+            gridX = startX;
+            gridY = startY;
+
+            int bossHp = (level == 4) ? 50 : 100;
+            Enemy boss = creatEnemyByType(4, startX, startY);
+            boss.setHealth(bossHp);
+
+            bossCell.setCurrentEnemy(boss);
+            gridCells.add(bossCell);
+            return;
+        }
+
         int rows = 5;
         int cols = 8;
         int respawnCount = 2;
@@ -508,21 +579,15 @@ public class GamePanel extends JPanel{
         }
 
         if(!hasActiveCell){
-            System.out.println("Level " + currentLevel + " cleared!");
-            currentLevel++;
-            gridX = 100;
-            gridY = 30;
-            gridDirection = 1;
-            gridSpeedX = 0.2;
-            gridCells.clear();
-            setupGrid(currentLevel);
+            if(levelTransitionTimer == 0)
+                levelTransitionTimer = 180;
             return;
         }
 
         gridX += gridSpeedX * gridDirection;
 
-        int enemyWidth = 45;
-        int enemyHeight = 45;
+        int enemyWidth = (currentLevel == 4 || currentLevel == 8) ? 150 : 45;
+        int enemyHeight = (currentLevel == 4 || currentLevel == 8) ? 150 : 45;
 
         //right collision
         if(gridX + maxOffsetX + enemyWidth >= getWidth()){
@@ -693,9 +758,66 @@ public class GamePanel extends JPanel{
             }
         }
 
+        if(currentLevel == 4 || currentLevel == 8){
+            for(Cell cell : gridCells){
+                Enemy enemy = cell.getCurrentEnemy();
+                if(enemy instanceof BossLevel4 || enemy instanceof BossLevel8){
+
+                    int hpPercent = (int) (((double) enemy.getHealth() / enemy.getMaxHealth()) * 100);
+                    int barWidth = 400;
+                    int barHeight = 20;
+                    int barX = (getWidth() - barWidth) / 2;
+                    int barY = 45;
+
+                    g.setColor(new Color(0x151515));
+                    g.fillRect(barX, barY, barWidth, barHeight);
+
+                    if(hpPercent > 50)
+                        g.setColor(new Color(50, 205, 50));
+                    else if (hpPercent > 25)
+                        g.setColor(Color.orange);
+                    else
+                        g.setColor(new Color(0x6A0303));
+
+                    int currentWidth = (int) ((hpPercent / 100.0) * barWidth);
+                    g.fillRect(barX, barY, currentWidth, barHeight);
+
+                    g.setColor(Color.white);
+                    g.drawRect(barX, barY, barWidth, barHeight);
+
+                    g.setFont(new Font("Arial", Font.BOLD, 14));
+                    g.drawString("BOSS", barX + barWidth / 2 - 20, barY + 15);
+                }
+            }
+        }
+
+        //draw level name on screen
+        if(levelTransitionTimer > 0){
+            Graphics2D g2d = (Graphics2D) g;
+
+            g2d.setColor(new Color(0, 0, 0, 150));
+            g2d.fillRect(0, 0, getWidth(), getHeight());
+
+            String msg = (currentLevel == 8) ? "Winner Winner\nChicken Dinner!" : "LEVEL " + (currentLevel + 1);
+            if(currentLevel == 3 || currentLevel == 7)
+                msg = "BOSS LEVEL!";
+
+            g2d.setColor(new Color(0xEC4A05));
+            g2d.setFont(new Font("Arial", Font.ITALIC, 55));
+            FontMetrics fm = g2d.getFontMetrics();
+            int msgX = (getWidth() - fm.stringWidth(msg)) / 2;
+            int msgY = getHeight() / 2;
+            g2d.drawString(msg, msgX, msgY);
+        }
+
+        if(bossExplosionTimer > 0 && bossExplosionImg != null)
+            g.drawImage(bossExplosionImg, bossExpX, bossExpY, 200, 200, this);
+
         //draw level
-        g.setColor(Color.yellow);
-        g.drawString("LEVEL: " + currentLevel, getWidth() / 2 - 40, 30);
+        if(levelTransitionTimer == 0) {
+            g.setColor(Color.yellow);
+            g.drawString("LEVEL: " + currentLevel, getWidth() / 2 - 40, 30);
+        }
 
         //draw pause
         if(isPaused){
@@ -753,6 +875,8 @@ public class GamePanel extends JPanel{
             return new FastEnemy(startX, startY, currentLevel, fastChickenIcon, this);
         if(type == 3)
             return  new ZigzagEnemy(startX, startY, currentLevel, zigzagChickenIcon, this);
+        if(type == 4)
+            return new BossLevel4(startX, startY, 50, boss1Icon, this);
         return new NormalEnemy(startX, startY, currentLevel, normalChickenIcon, this);
     }
 }

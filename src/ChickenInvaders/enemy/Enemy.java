@@ -9,6 +9,7 @@ public abstract class Enemy {
     protected int width = 45;
     protected int height = 45;
     protected int health;
+    protected int maxHealth;
     protected JLabel enemyLabel;
     protected boolean isArriving = false;
     protected int speed = 2;
@@ -19,6 +20,10 @@ public abstract class Enemy {
         this.floatX = x;
         this.floatY = y;
         this.health = health;
+        this.maxHealth = health;
+
+        this.width = icon.getIconWidth();
+        this.height = icon.getIconHeight();
 
         this.enemyLabel = new JLabel(icon);
         this.enemyLabel.setBounds(x, y, width, height);
@@ -37,6 +42,14 @@ public abstract class Enemy {
 
     public int getHealth(){
         return health;
+    }
+
+    public int getMaxHealth(){
+        return maxHealth;
+    }
+
+    public void setHealth(int health){
+        this.health = health;
     }
 
     public void takeDamage(){
