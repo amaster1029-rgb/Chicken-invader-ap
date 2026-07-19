@@ -1020,6 +1020,13 @@ public class GamePanel extends JPanel{
             return (Math.random() > 0.5) ? 1 : 3;
         else if(level == 5)
             return (Math.random() > 0.5) ? 2 : 5;
+        else if(level == 6)
+            return (Math.random() > 0.5) ? 3 : 5;
+        else if(level == 7){
+            int[] allType = {1, 2, 3, 4};
+            return allType[(int) (Math.random() * allType.length)];
+        }
+
 
 
         return 1;
