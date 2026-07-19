@@ -13,6 +13,11 @@ import java.util.List;
 import java.util.ArrayList;
 
 public class GamePanel extends JPanel{
+    private JButton retutnButton;
+
+    private boolean isGameOver = false;
+    private boolean isVictory = false;
+
     private GameMain gameMain;
 
     private Image backgroundImg1;
@@ -72,6 +77,22 @@ public class GamePanel extends JPanel{
         this.gameMain = gameMain;
         setLayout(null);
         setBounds(0, 0, 700, 500);
+
+        //return button
+        retutnButton = new JButton("Back to Menu");
+        retutnButton.setBounds(290, 320, 200, 40);
+        retutnButton.setFont(new Font("Arial", Font.BOLD, 16));
+        retutnButton.setFocusable(false);
+        retutnButton.setVisible(false);
+        retutnButton.setBackground(new Color(50, 50, 50));
+        retutnButton.setForeground(Color.white);
+
+        retutnButton.addActionListener(e -> {
+            retutnButton.setVisible(false);
+            gameMain.showPanel("MainMenu");
+        });
+
+        this.add(retutnButton);
 
         //load background image
         ImageIcon originalBG = new ImageIcon("background/background.jpg");
@@ -143,13 +164,17 @@ public class GamePanel extends JPanel{
             if(levelTransitionTimer > 0){
                 levelTransitionTimer--;
                 if(levelTransitionTimer == 0){
-                    System.out.println("Level " + currentLevel + " cleared");
-                    currentLevel++;
-                    gridX = 100;
-                    gridY = 30;
-                    gridDirection = 1;
-                    gridCells.clear();
-                    setupGrid(currentLevel);
+                    if(currentLevel == 8)
+                        triggerVictory();
+                    else {
+                        System.out.println("Level " + currentLevel + " cleared");
+                        currentLevel++;
+                        gridX = 100;
+                        gridY = 30;
+                        gridDirection = 1;
+                        gridCells.clear();
+                        setupGrid(currentLevel);
+                    }
                 }
             }
 
@@ -209,7 +234,19 @@ public class GamePanel extends JPanel{
                                 }else
                                     explosions.add(new Explosion(enemy.getX() + 22, enemy.getY() + 22, Color.orange));
 
-                                score += (enemy instanceof BossLevel4 || enemy instanceof BossLevel8) ? 500 : 10;
+                                if(enemy instanceof BossLevel8)
+                                    score += 1000;
+                                else if(enemy instanceof BossLevel4)
+                                    score += 500;
+                                else if(enemy instanceof NormalEnemy)
+                                    score += 10;
+                                else if(enemy instanceof FastEnemy)
+                                    score += 15;
+                                else if(enemy instanceof ZigzagEnemy)
+                                    score += 20;
+                                else if(enemy instanceof ShooterEnemy)
+                                    score += 25;
+
 
                                 if(Math.random() < 0.20){
                                     PowerUp.Type[] types = PowerUp.Type.values();
@@ -392,6 +429,12 @@ public class GamePanel extends JPanel{
             @Override
             public void keyPressed(KeyEvent e) {
                 int keyCode = e.getKeyCode();
+
+                if(isGameOver || isVictory){
+                    if(keyCode == KeyEvent.VK_ESCAPE)
+                        gameMain.showPanel("MainMenu");
+                    return;
+                }
 
                 if(keyCode == KeyEvent.VK_P) {
                     isPaused = !isPaused;
@@ -579,8 +622,12 @@ public class GamePanel extends JPanel{
         }
 
         if(!hasActiveCell){
-            if(levelTransitionTimer == 0)
+            if(levelTransitionTimer == 0) {
                 levelTransitionTimer = 180;
+
+                if (currentLevel != 4 && currentLevel != 8)
+                    score += 200;
+            }
             return;
         }
 
@@ -791,6 +838,20 @@ public class GamePanel extends JPanel{
             }
         }
 
+        if(bossExplosionTimer > 0 && bossExplosionImg != null)
+            g.drawImage(bossExplosionImg, bossExpX, bossExpY, 200, 200, this);
+
+        //draw level
+        if(levelTransitionTimer == 0) {
+            g.setColor(Color.yellow);
+            g.drawString("LEVEL: " + currentLevel, getWidth() / 2 - 40, 30);
+        }
+    }
+
+    @Override
+    public void paint(Graphics g) {
+        super.paint(g);
+
         //draw level name on screen
         if(levelTransitionTimer > 0){
             Graphics2D g2d = (Graphics2D) g;
@@ -798,7 +859,7 @@ public class GamePanel extends JPanel{
             g2d.setColor(new Color(0, 0, 0, 150));
             g2d.fillRect(0, 0, getWidth(), getHeight());
 
-            String msg = (currentLevel == 8) ? "Winner Winner\nChicken Dinner!" : "LEVEL " + (currentLevel + 1);
+            String msg = "LEVEL " + (currentLevel + 1);
             if(currentLevel == 3 || currentLevel == 7)
                 msg = "BOSS LEVEL!";
 
@@ -808,15 +869,6 @@ public class GamePanel extends JPanel{
             int msgX = (getWidth() - fm.stringWidth(msg)) / 2;
             int msgY = getHeight() / 2;
             g2d.drawString(msg, msgX, msgY);
-        }
-
-        if(bossExplosionTimer > 0 && bossExplosionImg != null)
-            g.drawImage(bossExplosionImg, bossExpX, bossExpY, 200, 200, this);
-
-        //draw level
-        if(levelTransitionTimer == 0) {
-            g.setColor(Color.yellow);
-            g.drawString("LEVEL: " + currentLevel, getWidth() / 2 - 40, 30);
         }
 
         //draw pause
@@ -834,9 +886,35 @@ public class GamePanel extends JPanel{
             int msgY = getHeight() / 2;
             g2d.drawString(msg, msgX, msgY);
         }
+
+        if(isGameOver || isVictory){
+            Graphics2D g2d = (Graphics2D) g;
+
+            g2d.setColor(new Color(0, 0, 0, 180));
+            g2d.fillRect(0, 0, getWidth(), getHeight());
+
+            g2d.setFont(new Font("Arial", Font.BOLD, 50));
+            String msg = !isVictory ? "GAME OVER!" : "Winner Winner Chicken Dinner";
+            g2d.setColor(isVictory ? Color.green : Color.red);
+
+            FontMetrics fm = g2d.getFontMetrics();
+            int msgX = (getWidth() - fm.stringWidth(msg)) / 2;
+            int msgY = getHeight() / 2 - 30;
+            g2d.drawString(msg, msgX, msgY);
+
+            g2d.setFont(new Font("Arial", Font.BOLD, 20));
+            String subMsg = "Press ESC to return to Menu";
+            g2d.setColor(Color.white);
+
+            FontMetrics fm1 = g2d.getFontMetrics();
+            int subMsgX = (getWidth() - fm1.stringWidth(subMsg)) / 2;
+            int subMsgY = getHeight() / 2 + 30;
+            g2d.drawString(subMsg, subMsgX, subMsgY);
+        }
     }
 
     public void triggerGameOver(){
+        isGameOver = true;
         gameTimer.stop();
         SoundManager.playGameOverSound("sound-effects/mixkit-retro-arcade-game-over-470.wav");
         System.out.println("Game Over");
@@ -853,8 +931,31 @@ public class GamePanel extends JPanel{
             bullet.removeFromPanel(GamePanel.this);
         bullets.clear();
 
-        if(this.gameMain != null)
-            gameMain.showPanel("MainMenu");
+        retutnButton.setVisible(true);
+
+        repaint();
+    }
+
+    public void triggerVictory(){
+        isVictory = true;
+
+        gameTimer.stop();
+
+        for(Egg egg : eggs)
+            egg.removeFromPanel(GamePanel.this);
+        eggs.clear();
+
+        for(PowerUp powerUp : powerUps)
+            powerUp.removeFromPanel(GamePanel.this);
+        powerUps.clear();
+
+        for(Bullet bullet : bullets)
+            bullet.removeFromPanel(GamePanel.this);
+        bullets.clear();
+
+        retutnButton.setVisible(true);
+
+        repaint();
     }
 
     public int getRandomEnemyTypeForLevel(int level){
