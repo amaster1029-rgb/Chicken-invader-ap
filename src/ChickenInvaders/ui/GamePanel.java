@@ -71,6 +71,7 @@ public class GamePanel extends JPanel{
     private ImageIcon fastChickenIcon;
     private ImageIcon zigzagChickenIcon;
     private ImageIcon boss1Icon;
+    private ImageIcon shooterChickenIcon;
 
     private int levelTransitionTimer = 0;
 
@@ -124,6 +125,9 @@ public class GamePanel extends JPanel{
 
         ImageIcon originalBoss1 = new ImageIcon("chicken/boss1.png");
         boss1Icon = new ImageIcon(originalBoss1.getImage().getScaledInstance(150, 150, Image.SCALE_SMOOTH));
+
+        ImageIcon originalShooter = new ImageIcon("chicken/shooter_chicken.png");
+        shooterChickenIcon = new ImageIcon(originalShooter.getImage().getScaledInstance(45, 45, Image.SCALE_SMOOTH));
 
         setupGrid(1);
 
@@ -307,8 +311,27 @@ public class GamePanel extends JPanel{
                         else if(currentLevel == 8 && isBoss){
 
                         }
-                        else
-                            eggs.add(new Egg(cx, cy, 0, 4, eggIcon, GamePanel.this));
+                        else {
+                            if (shooter instanceof ShooterEnemy && playerPlane != null){
+                                int targetX = playerPlane.getX() + 30;
+                                int targetY = playerPlane.getY() + 30;
+
+                                double dx = targetX - cx;
+                                double dy = targetY - cy;
+                                double distance = Math.sqrt(dx * dx + dy * dy);
+
+                                double eggSpeed = 4.0;
+                                int speedX = (int)Math.round((dx / distance) * eggSpeed);
+                                int speedY = (int)Math.round((dy / distance) * eggSpeed);
+
+                                if(speedY < 1)
+                                    speedY = 1;
+
+                                eggs.add(new Egg(cx, cy, speedX, speedY, eggIcon, GamePanel.this));
+                            }
+                            else
+                                eggs.add(new Egg(cx, cy, 0, 4, eggIcon, GamePanel.this));
+                        }
                     }
                 }
             }
@@ -991,12 +1014,13 @@ public class GamePanel extends JPanel{
     public int getRandomEnemyTypeForLevel(int level){
         if(level == 1)
             return 1;
-        else if (level == 2) {
+        else if (level == 2)
             return (Math.random() > 0.5) ? 1 : 2;
-        }
-        else if (level == 3) {
+        else if (level == 3)
             return (Math.random() > 0.5) ? 1 : 3;
-        }
+        else if(level == 5)
+            return (Math.random() > 0.5) ? 2 : 5;
+
 
         return 1;
     }
@@ -1008,6 +1032,9 @@ public class GamePanel extends JPanel{
             return  new ZigzagEnemy(startX, startY, currentLevel, zigzagChickenIcon, this);
         if(type == 4)
             return new BossLevel4(startX, startY, 50, boss1Icon, this);
+        if(type == 5)
+            return new ShooterEnemy(startX, startY, currentLevel, shooterChickenIcon, this);
+
         return new NormalEnemy(startX, startY, currentLevel, normalChickenIcon, this);
     }
 }
