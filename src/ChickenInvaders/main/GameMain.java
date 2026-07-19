@@ -1,5 +1,7 @@
 package ChickenInvaders.main;
 
+import ChickenInvaders.database.DatabaseManager;
+import ChickenInvaders.model.User;
 import ChickenInvaders.ui.*;
 
 import javax.swing.*;
@@ -8,6 +10,7 @@ import java.awt.*;
 public class GameMain extends JFrame {
     private CardLayout cardLayout;
     private JPanel mainContainer;
+    private User currentUser;
 
     public GameMain(){
         setTitle("Chicken Invaders");
@@ -30,10 +33,26 @@ public class GameMain extends JFrame {
 
         showPanel("MainMenu");
         setVisible(true);
+
+        DatabaseManager.initDatabase();
+
+        LoginPanel loginPanel = new LoginPanel(this);
+        mainContainer.add(loginPanel, "LoginPanel");
+
+        RegisterPanel registerPanel = new RegisterPanel(this);
+        mainContainer.add(registerPanel, "RegisterPanel");
     }
 
     public void showPanel(String panelName){
         cardLayout.show(mainContainer, panelName);
+    }
+
+    public User getCurrentUser(){
+        return currentUser;
+    }
+
+    public void setCurrentUser(User currentUser){
+        this.currentUser = currentUser;
     }
 
     public void startGame(){

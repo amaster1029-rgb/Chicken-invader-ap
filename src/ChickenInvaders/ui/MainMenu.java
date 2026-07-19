@@ -33,7 +33,12 @@ public class MainMenu extends JPanel{
         JButton exitButton = new JButton("Exit");
         exitButton.setBounds(275, 420, 150, 40);
 
-        newGameButton.addActionListener(e -> gameMain.startGame());
+        newGameButton.addActionListener(e -> {
+            if(gameMain.getCurrentUser() == null)
+                gameMain.showPanel("LoginPanel");
+            else
+                gameMain.startGame();
+        });
         settingButton.addActionListener(e -> gameMain.showPanel("SettingMenu"));
         howToPlayButton.addActionListener(e -> gameMain.showPanel("HowToPlayMenu"));
         exitButton.addActionListener(e -> System.exit(0));

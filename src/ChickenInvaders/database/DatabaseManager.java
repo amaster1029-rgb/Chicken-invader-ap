@@ -31,7 +31,7 @@ public class DatabaseManager {
             "bgMusic INT, " +
             "shotMusic INT, " +
             "crashMusic INT, " +
-            "gameOverSoudn INT, " +
+            "gameOverSound INT, " +
             "FOREIGN KEY (username) REFERENCES Users(username))");
 
     stm.close();

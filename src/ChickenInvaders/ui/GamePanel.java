@@ -1,5 +1,6 @@
 package ChickenInvaders.ui;
 
+import ChickenInvaders.database.DatabaseManager;
 import ChickenInvaders.enemy.*;
 import ChickenInvaders.main.GameMain;
 import ChickenInvaders.main.SoundManager;
