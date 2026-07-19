@@ -41,6 +41,9 @@ public class GameMain extends JFrame {
 
         RegisterPanel registerPanel = new RegisterPanel(this);
         mainContainer.add(registerPanel, "RegisterPanel");
+
+        HighScorePanel highScorePanel = new HighScorePanel(this);
+        mainContainer.add(highScorePanel, "HighScorePanel");
     }
 
     public void showPanel(String panelName){

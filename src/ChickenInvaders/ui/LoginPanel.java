@@ -2,6 +2,7 @@ package ChickenInvaders.ui;
 
 import ChickenInvaders.database.DatabaseManager;
 import ChickenInvaders.main.GameMain;
+import ChickenInvaders.main.SoundManager;
 import ChickenInvaders.model.User;
 
 import javax.swing.*;
@@ -56,6 +57,16 @@ public class LoginPanel extends JPanel {
             User user = DatabaseManager.login(username, password);
             if(user != null){
                 gameMain.setCurrentUser(user);
+
+                SoundManager.isMusicEnabled = user.isBgMusic();
+
+                if(!SoundManager.isMusicEnabled)
+                    SoundManager.stopBGM();
+
+                SoundManager.isShotEnabled = user.isShotMusic();
+                SoundManager.isExplosionEnabled = user.isCrashMusic();
+                SoundManager.isGameOverEnabled = user.isGameOverSound();
+
                 gameMain.startGame();
             }
             else

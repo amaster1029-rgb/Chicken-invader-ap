@@ -1,9 +1,13 @@
 package ChickenInvaders.ui;
 
+import ChickenInvaders.database.DatabaseManager;
 import ChickenInvaders.main.GameMain;
 import ChickenInvaders.main.SoundManager;
+import ChickenInvaders.model.User;
 
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import javax.swing.*;
 
 public class SettingsPanel extends JPanel{
@@ -36,7 +40,35 @@ public class SettingsPanel extends JPanel{
         JButton backButton = new JButton("Save & Back");
         backButton.setBounds(280, 400, 150, 40);
 
-        backButton.addActionListener(e -> gameMain.showPanel("MainMenu"));
+        backButton.addActionListener(e -> {
+            SoundManager.isMusicEnabled = musicCheck.isSelected();
+            SoundManager.isExplosionEnabled = explosionCheck.isSelected();
+            SoundManager.isShotEnabled = shotCheck.isSelected();
+            SoundManager.isGameOverEnabled = gameOverCheck.isSelected();
+
+            if(!SoundManager.isMusicEnabled)
+                SoundManager.stopBGM();
+            else
+                SoundManager.resumeBGM();
+
+            User currentUser = gameMain.getCurrentUser();
+            if(currentUser != null){
+                currentUser.setBgMusic(musicCheck.isSelected());
+                currentUser.setCrashMusic(explosionCheck.isSelected());
+                currentUser.setShotMusic(shotCheck.isSelected());
+                currentUser.setGameOverSound(gameOverCheck.isSelected());
+
+                DatabaseManager.updateSoundSetting(
+                        currentUser.getUsername(),
+                        musicCheck.isSelected(),
+                        shotCheck.isSelected(),
+                        explosionCheck.isSelected(),
+                        gameOverCheck.isSelected()
+                );
+            }
+
+            gameMain.showPanel("MainMenu");
+        });
 
         add(titleLabel);
         add(musicCheck);
@@ -44,6 +76,16 @@ public class SettingsPanel extends JPanel{
         add(explosionCheck);
         add(gameOverCheck);
         add(backButton);
+
+        this.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentShown(ComponentEvent e) {
+                musicCheck.setSelected(SoundManager.isMusicEnabled);
+                shotCheck.setSelected(SoundManager.isShotEnabled);
+                explosionCheck.setSelected(SoundManager.isExplosionEnabled);
+                gameOverCheck.setSelected(SoundManager.isGameOverEnabled);
+            }
+        });
     }
 
     public void setupCheckBoxStyle(JCheckBox checkBox){

@@ -11,8 +11,11 @@ public class SoundManager {
     public static boolean isGameOverEnabled = true;
 
     private static Clip bgmClip;
+    private static String currentBGMPath = "";
 
     public static void playBGM(String filePath){
+        currentBGMPath = filePath;
+
         if(!isMusicEnabled)
             return;
         try {
@@ -21,6 +24,9 @@ public class SoundManager {
 
             File file = new File(filePath);
             if(file.exists()){
+                if(bgmClip != null)
+                    bgmClip.close();
+
                 AudioInputStream audioStream = AudioSystem.getAudioInputStream(file);
                 bgmClip = AudioSystem.getClip();
                 bgmClip.open(audioStream);
@@ -52,7 +58,7 @@ public class SoundManager {
     }
 
     public static void playShotSound(String filePath){
-        if(isMusicEnabled)
+        if(isShotEnabled)
             playEffect(filePath);
     }
 
@@ -64,6 +70,18 @@ public class SoundManager {
     public static void playGameOverSound(String filePath){
         if(isGameOverEnabled)
             playEffect(filePath);
-        stopBGM();
+    }
+
+    public static void resumeBGM(){
+        if(isMusicEnabled){
+            if(bgmClip != null){
+                if(!bgmClip.isRunning()){
+                    bgmClip.start();
+                    bgmClip.loop(Clip.LOOP_CONTINUOUSLY);
+                }
+            }
+            else if(currentBGMPath != null && !currentBGMPath.isEmpty())
+                playBGM(currentBGMPath);
+        }
     }
 }

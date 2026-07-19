@@ -41,6 +41,7 @@ public class MainMenu extends JPanel{
         });
         settingButton.addActionListener(e -> gameMain.showPanel("SettingMenu"));
         howToPlayButton.addActionListener(e -> gameMain.showPanel("HowToPlayMenu"));
+        highScoreButton.addActionListener(e -> gameMain.showPanel("HighScorePanel"));
         exitButton.addActionListener(e -> System.exit(0));
 
         add(titleLabel);

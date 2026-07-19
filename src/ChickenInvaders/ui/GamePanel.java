@@ -916,6 +916,21 @@ public class GamePanel extends JPanel{
 
     public void triggerGameOver(){
         isGameOver = true;
+
+        //saving record
+        User user = gameMain.getCurrentUser();
+        if(user != null){
+            DatabaseManager.saveGameRecord(user.getUsername(),
+                    score,
+                    currentLevel,
+                    user.isBgMusic(),
+                    user.isShotMusic(),
+                    user.isCrashMusic(),
+                    user.isGameOverSound());
+
+            DatabaseManager.updateUserProgress(user.getUsername(), score, currentLevel);
+        }
+
         gameTimer.stop();
         SoundManager.playGameOverSound("sound-effects/mixkit-retro-arcade-game-over-470.wav");
         System.out.println("Game Over");
@@ -939,6 +954,20 @@ public class GamePanel extends JPanel{
 
     public void triggerVictory(){
         isVictory = true;
+
+        //saving record
+        User user = gameMain.getCurrentUser();
+        if(user != null){
+            DatabaseManager.saveGameRecord(user.getUsername(),
+                    score,
+                    currentLevel,
+                    user.isBgMusic(),
+                    user.isShotMusic(),
+                    user.isCrashMusic(),
+                    user.isGameOverSound());
+
+            DatabaseManager.updateUserProgress(user.getUsername(), score, currentLevel);
+        }
 
         gameTimer.stop();
 

@@ -3,6 +3,8 @@ package ChickenInvaders.database;
 import ChickenInvaders.model.User;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DatabaseManager {
     static String url = "jdbc:sqlite:game.db";
@@ -162,31 +164,31 @@ public class DatabaseManager {
         }
     }
 
-    public static void printHighScore(){
-        try (Connection conn = DriverManager.getConnection(url)){
+    public static List<String[]> getHighScoresList(){
+        List<String[]> list = new ArrayList<>();
+        try(Connection conn = DriverManager.getConnection(url)){
             Statement stm = conn.createStatement();
-
             ResultSet rs = stm.executeQuery(
                     "SELECT username, MAX(finalScore) as topScore, lastLevel, timeSpend " +
-                            "FROM GameRecords GROUP BY username ORDER BY topScore DESC "
+                            "FROM GameRecords GROUP BY username ORDER BY topScore DESC LIMIT 10"
             );
 
-            boolean found = false;
-            System.out.println("____High Score Table____");
             while (rs.next()){
-                found = true;
-                System.out.println("User: " + rs.getString("username") +
-                        " | Score: " + rs.getInt("topScore") +
-                        " | Level: " + rs.getInt("lastLevel") +
-                        " | Date: " + rs.getString("timeSpend"));
+                String[] row = new String[4];
+                row[0] = rs.getString("username");
+                row[1] = String.valueOf(rs.getInt("topScore"));
+                row[2] = String.valueOf(rs.getInt("lastLevel"));
+                row[3] = rs.getString("timeSpend");
+                list.add(row);
             }
-            if(!found)
-                System.out.println("No game record found!");
 
             rs.close();
             stm.close();
+
         }catch (SQLException e){
             System.out.println(e.getMessage());
         }
+
+        return list;
     }
 }
