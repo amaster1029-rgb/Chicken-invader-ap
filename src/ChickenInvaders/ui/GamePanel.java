@@ -114,7 +114,7 @@ public class GamePanel extends JPanel{
 
         //load shot image
         ImageIcon originalShot = new ImageIcon("airplan/shot.png");
-        Image scaledShot = originalShot.getImage().getScaledInstance(5, 20, Image.SCALE_SMOOTH);
+        Image scaledShot = originalShot.getImage().getScaledInstance(15, 30, Image.SCALE_SMOOTH);
         shotIcon = new ImageIcon(scaledShot);
 
         //load chickens
@@ -140,7 +140,7 @@ public class GamePanel extends JPanel{
 
         //load egg imag
         ImageIcon originalEgg = new ImageIcon("chicken/egg.png");
-        eggIcon = new ImageIcon(originalEgg.getImage().getScaledInstance(15, 20, Image.SCALE_SMOOTH));
+        eggIcon = new ImageIcon(originalEgg.getImage().getScaledInstance(25, 30, Image.SCALE_SMOOTH));
 
         //load power up imag
         ImageIcon originalAddFire = new ImageIcon("powerup1/add_shot.png");
