@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.ArrayList;
 
 public class GamePanel extends JPanel{
+    private boolean[] keys = new boolean[256];
+
     private JButton retutnButton;
 
     private boolean isGameOver = false;
@@ -172,6 +174,59 @@ public class GamePanel extends JPanel{
             if(isPaused){
                 repaint();
                 return;
+            }
+
+            if(!isGameOver && !isVictory && playerPlane != null){
+                //move right
+                if(keys[KeyEvent.VK_RIGHT] || keys[KeyEvent.VK_D])
+                    playerPlane.moveRight(getWidth());
+                //move left
+                if(keys[KeyEvent.VK_LEFT] || keys[KeyEvent.VK_A])
+                    playerPlane.moveLeft();
+                //move down
+                if(keys[KeyEvent.VK_DOWN] || keys[KeyEvent.VK_S])
+                    playerPlane.moveDown(getHeight());
+                //move up
+                if(keys[KeyEvent.VK_UP] || keys[KeyEvent.VK_W])
+                    playerPlane.moveUp();
+                //shooting
+                if(keys[KeyEvent.VK_SPACE]){
+                    long currentTime = System.currentTimeMillis();
+                    int currentCooldown = (rapidFireTimer > 0) ? 100 : 300;
+
+                    //checking for 300ms delay
+                    if(currentTime - lastShotTime >= currentCooldown){
+                        SoundManager.playShotSound("sound-effects/mixkit-short-laser-gun-shot-1670.wav");
+                        lastShotTime = currentTime;
+
+                        int wLevel = playerPlane.getWeaponLevel();
+                        int px = playerPlane.getX();
+                        int py = playerPlane.getY();
+
+                        if (wLevel == 1) {
+                            bullets.add(new Bullet(px, py, shotIcon, GamePanel.this));
+                        } else if (wLevel == 2) {
+                            bullets.add(new Bullet(px + 12, py + 10, shotIcon, GamePanel.this));
+                            bullets.add(new Bullet(px - 12, py + 10, shotIcon, GamePanel.this));
+                        } else if (wLevel == 3) {
+                            bullets.add(new Bullet(px - 15, py + 15, shotIcon, GamePanel.this));
+                            bullets.add(new Bullet(px, py - 5, shotIcon, GamePanel.this));
+                            bullets.add(new Bullet(px + 15, py + 15, shotIcon, GamePanel.this));
+                        }else if (wLevel == 4) {
+                            bullets.add(new Bullet(px - 15, py + 10, shotIcon, GamePanel.this));
+                            bullets.add(new Bullet(px - 5, py + 10, shotIcon, GamePanel.this));
+                            bullets.add(new Bullet(px + 5, py + 10, shotIcon, GamePanel.this));
+                            bullets.add(new Bullet(px + 15, py + 10, shotIcon, GamePanel.this));
+                        } else if (wLevel >= 5) {
+                            bullets.add(new Bullet(px - 20, py + 10, shotIcon, GamePanel.this));
+                            bullets.add(new Bullet(px - 10, py + 10, shotIcon, GamePanel.this));
+                            bullets.add(new Bullet(px, py + 15, shotIcon, GamePanel.this));
+                            bullets.add(new Bullet(px + 10, py + 10, shotIcon, GamePanel.this));
+                            bullets.add(new Bullet(px + 20, py + 10, shotIcon, GamePanel.this));
+                        }
+
+                    }
+                }
             }
 
             if(levelTransitionTimer > 0){
@@ -481,6 +536,9 @@ public class GamePanel extends JPanel{
             public void keyPressed(KeyEvent e) {
                 int keyCode = e.getKeyCode();
 
+                if(keyCode < 256)
+                    keys[keyCode] = true;
+
                 if(isGameOver || isVictory){
                     if(keyCode == KeyEvent.VK_ESCAPE)
                         gameMain.showPanel("MainMenu");
@@ -495,59 +553,6 @@ public class GamePanel extends JPanel{
                 if(isPaused)
                     return;
 
-                //move right
-                if(keyCode == KeyEvent.VK_RIGHT || keyCode == KeyEvent.VK_D)
-                    playerPlane.moveRight(getWidth());
-                //move left
-                if(keyCode == KeyEvent.VK_LEFT || keyCode == KeyEvent.VK_A)
-                    playerPlane.moveLeft();
-                //move down
-                if(keyCode == KeyEvent.VK_DOWN || keyCode == KeyEvent.VK_S)
-                    playerPlane.moveDown(getHeight());
-                //move up
-                if(keyCode == KeyEvent.VK_UP || keyCode == KeyEvent.VK_W)
-                    playerPlane.moveUp();
-                //shooting
-                if(keyCode == KeyEvent.VK_SPACE){
-                    SoundManager.playShotSound("sound-effects/mixkit-short-laser-gun-shot-1670.wav");
-                    long currentTime = System.currentTimeMillis();
-
-                    int currentCooldown = (rapidFireTimer > 0) ? 100 : 300;
-
-                    //checking for 300ms delay
-                    if(currentTime - lastShotTime >= currentCooldown){
-                        SoundManager.playShotSound("sound-effects/mixkit-short-laser-gun-shot-1670.wav");
-                        lastShotTime = currentTime;
-
-                        int wLevel = playerPlane.getWeaponLevel();
-                        int px = playerPlane.getX();
-                        int py = playerPlane.getY();
-
-                        if (wLevel == 1) {
-                            bullets.add(new Bullet(px, py, shotIcon, GamePanel.this));
-                        } else if (wLevel == 2) {
-                            bullets.add(new Bullet(px + 12, py + 10, shotIcon, GamePanel.this));
-                            bullets.add(new Bullet(px - 12, py + 10, shotIcon, GamePanel.this));
-                        } else if (wLevel == 3) {
-                            bullets.add(new Bullet(px - 15, py + 15, shotIcon, GamePanel.this));
-                            bullets.add(new Bullet(px, py - 5, shotIcon, GamePanel.this));
-                            bullets.add(new Bullet(px + 15, py + 15, shotIcon, GamePanel.this));
-                        }else if (wLevel == 4) {
-                            bullets.add(new Bullet(px - 15, py + 10, shotIcon, GamePanel.this));
-                            bullets.add(new Bullet(px - 5, py + 10, shotIcon, GamePanel.this));
-                            bullets.add(new Bullet(px + 5, py + 10, shotIcon, GamePanel.this));
-                            bullets.add(new Bullet(px + 15, py + 10, shotIcon, GamePanel.this));
-                        } else if (wLevel >= 5) {
-                            bullets.add(new Bullet(px - 20, py + 10, shotIcon, GamePanel.this));
-                            bullets.add(new Bullet(px - 10, py + 10, shotIcon, GamePanel.this));
-                            bullets.add(new Bullet(px, py + 15, shotIcon, GamePanel.this));
-                            bullets.add(new Bullet(px + 10, py + 10, shotIcon, GamePanel.this));
-                            bullets.add(new Bullet(px + 20, py + 10, shotIcon, GamePanel.this));
-                        }
-
-                    }
-                }
-
                 //quiting the game
                 if(keyCode == KeyEvent.VK_ESCAPE){
                     gameTimer.stop();
@@ -560,6 +565,13 @@ public class GamePanel extends JPanel{
 
                     gameMain.showPanel("MainMenu");
                 }
+            }
+
+            @Override
+            public void keyReleased(KeyEvent e) {
+                int keyCode = e.getKeyCode();
+                if(keyCode < 256)
+                    keys[keyCode] = false;
             }
         });
     }
