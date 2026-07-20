@@ -1041,6 +1041,7 @@ public class GamePanel extends JPanel{
         }
 
         gameTimer.stop();
+        SoundManager.playGameOverSound("sound-effects/area-clear.wav");
 
         for(Egg egg : eggs)
             egg.removeFromPanel(GamePanel.this);
