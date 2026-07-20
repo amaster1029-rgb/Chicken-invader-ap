@@ -51,7 +51,8 @@ public class GamePanel extends JPanel{
     private List<Explosion> explosions = new ArrayList<>();
 
     //boss explosion
-    private Image bossExplosionImg;
+    private Image boss1ExplosionImg;
+    private Image boss2ExplosionImg;
     private int bossExplosionTimer = 0;
     private int bossExpX = 0;
     private int bossExpY = 0;
@@ -72,6 +73,7 @@ public class GamePanel extends JPanel{
     private ImageIcon zigzagChickenIcon;
     private ImageIcon boss1Icon;
     private ImageIcon shooterChickenIcon;
+    private ImageIcon boss2Icon;
 
     private int levelTransitionTimer = 0;
 
@@ -129,7 +131,10 @@ public class GamePanel extends JPanel{
         ImageIcon originalShooter = new ImageIcon("chicken/shooter_chicken.png");
         shooterChickenIcon = new ImageIcon(originalShooter.getImage().getScaledInstance(45, 45, Image.SCALE_SMOOTH));
 
-        setupGrid(1);
+        ImageIcon originalBoss2 = new ImageIcon("chicken/boss2.png");
+        boss2Icon = new ImageIcon(originalBoss2.getImage().getScaledInstance(150, 150, Image.SCALE_SMOOTH));
+
+        setupGrid(currentLevel);
 
         //load egg imag
         ImageIcon originalEgg = new ImageIcon("chicken/egg.png");
@@ -157,7 +162,10 @@ public class GamePanel extends JPanel{
 
         //load boss explosion image
         ImageIcon originalBossExp = new ImageIcon("airplan/Explosion.png");
-        bossExplosionImg = originalBossExp.getImage().getScaledInstance(200, 200, Image.SCALE_SMOOTH);
+        boss1ExplosionImg = originalBossExp.getImage().getScaledInstance(200, 200, Image.SCALE_SMOOTH);
+
+        ImageIcon originalBoss2Exp = new ImageIcon("aiplane/Explosion2.png");
+        boss2ExplosionImg = originalBoss2Exp.getImage().getScaledInstance(200, 200, Image.SCALE_SMOOTH);
 
         gameTimer = new Timer(16, e -> {
 
@@ -299,8 +307,16 @@ public class GamePanel extends JPanel{
                         Enemy shooter = activeEnemies.get(randomIndex);
 
                         boolean isBoss = (shooter instanceof BossLevel4 || shooter instanceof BossLevel8);
-                        int cx = shooter.getX() + (isBoss ? 50 : 15);
-                        int cy = shooter.getY() + (isBoss ? 100 : 40);
+                        int cx, cy;
+
+                        if(isBoss){
+                            cx = shooter.getX() + 75 - 4;
+                            cy = shooter.getY() + 75 - 10;
+                        }
+                        else{
+                            cx = shooter.getX() + 15;
+                            cy = shooter.getY() + 40;
+                        }
 
                         if(currentLevel == 4 && isBoss){
                             eggs.add(new Egg(cx, cy, 0, -4, eggIcon, GamePanel.this)); // up
@@ -309,7 +325,18 @@ public class GamePanel extends JPanel{
                             eggs.add(new Egg(cx, cy, 4, 0, eggIcon, GamePanel.this)); //right
                         }
                         else if(currentLevel == 8 && isBoss){
+                            int straight = 4;
+                            int diag = 3;
 
+                            eggs.add(new Egg(cx, cy, 0, -straight, eggIcon, GamePanel.this)); //up
+                            eggs.add(new Egg(cx, cy, 0, straight, eggIcon, GamePanel.this)); //down
+                            eggs.add(new Egg(cx, cy, -straight, 0, eggIcon, GamePanel.this)); //left
+                            eggs.add(new Egg(cx, cy, straight, 0, eggIcon, GamePanel.this)); //right
+
+                            eggs.add(new Egg(cx, cy, diag, diag, eggIcon, GamePanel.this)); //down-right
+                            eggs.add(new Egg(cx, cy, -diag, diag, eggIcon, GamePanel.this)); //down-left
+                            eggs.add(new Egg(cx, cy, diag, -diag, eggIcon, GamePanel.this)); //up-right
+                            eggs.add(new Egg(cx, cy, -diag, -diag, eggIcon, GamePanel.this)); //up-left
                         }
                         else {
                             if (shooter instanceof ShooterEnemy && playerPlane != null){
@@ -543,11 +570,13 @@ public class GamePanel extends JPanel{
         //boss level 4 & 8
         if(level == 4 || level == 8){
             gridSpeedX = (level == 4) ? 1.5 : 2.0;
-            gridStepY = 0;
+            gridStepY = 15;
             eggSpawnRate = (level == 4) ? (int)(1.5 * 60) : (int)(1.0 * 60);
 
             Cell bossCell = new Cell(0, 0, 0);
-            bossCell.setEnemyType(4);
+
+            int bossType = (level == 8) ? 6 : 4;
+            bossCell.setEnemyType(bossType);
 
             int startX = (getWidth() - 150) / 2;
             int startY = 80;
@@ -556,7 +585,7 @@ public class GamePanel extends JPanel{
             gridY = startY;
 
             int bossHp = (level == 4) ? 50 : 100;
-            Enemy boss = creatEnemyByType(4, startX, startY);
+            Enemy boss = creatEnemyByType(bossType, startX, startY);
             boss.setHealth(bossHp);
 
             bossCell.setCurrentEnemy(boss);
@@ -752,8 +781,12 @@ public class GamePanel extends JPanel{
 
             //draw user name
             g.setColor(Color.white);
-            g.setFont(new Font("Arial", Font.BOLD, 20));
-            //g.drawString("PLAYER: " + username, 20, 20);
+            g.setFont(new Font("Arial", Font.BOLD, 18));
+
+            String username = "Guest";
+            if(gameMain.getCurrentUser() != null)
+                username = gameMain.getCurrentUser().getUsername();
+            g.drawString("PLAYER: " + username, 20, 60);
 
             //draw score
             g.setColor(Color.white);
@@ -862,8 +895,11 @@ public class GamePanel extends JPanel{
             }
         }
 
-        if(bossExplosionTimer > 0 && bossExplosionImg != null)
-            g.drawImage(bossExplosionImg, bossExpX, bossExpY, 200, 200, this);
+        if(bossExplosionTimer > 0 && boss1ExplosionImg != null)
+            g.drawImage(boss1ExplosionImg, bossExpX, bossExpY, 200, 200, this);
+
+        if(bossExplosionTimer > 0 && boss2ExplosionImg != null)
+            g.drawImage(boss2ExplosionImg, bossExpX, bossExpY, 200, 200, this);
 
         //draw level
         if(levelTransitionTimer == 0) {
@@ -877,14 +913,14 @@ public class GamePanel extends JPanel{
         super.paint(g);
 
         //draw level name on screen
-        if(levelTransitionTimer > 0){
+        if(levelTransitionTimer > 0 && currentLevel < 8){
             Graphics2D g2d = (Graphics2D) g;
 
             g2d.setColor(new Color(0, 0, 0, 150));
             g2d.fillRect(0, 0, getWidth(), getHeight());
 
-            String msg = "LEVEL " + (currentLevel + 1);
-            if(currentLevel == 3 || currentLevel == 7)
+            String  msg = "LEVEL " + (currentLevel + 1);
+            if (currentLevel == 3 || currentLevel == 7)
                 msg = "BOSS LEVEL!";
 
             g2d.setColor(new Color(0xEC4A05));
@@ -1023,11 +1059,9 @@ public class GamePanel extends JPanel{
         else if(level == 6)
             return (Math.random() > 0.5) ? 3 : 5;
         else if(level == 7){
-            int[] allType = {1, 2, 3, 4};
+            int[] allType = {1, 2, 3, 5};
             return allType[(int) (Math.random() * allType.length)];
         }
-
-
 
         return 1;
     }
@@ -1041,6 +1075,8 @@ public class GamePanel extends JPanel{
             return new BossLevel4(startX, startY, 50, boss1Icon, this);
         if(type == 5)
             return new ShooterEnemy(startX, startY, currentLevel, shooterChickenIcon, this);
+        if(type == 6)
+            return new BossLevel8(startX, startY, 100, boss2Icon, this);
 
         return new NormalEnemy(startX, startY, currentLevel, normalChickenIcon, this);
     }
